@@ -10,7 +10,7 @@ const { addOrder , deleteOrder , getOrders } = require('@/controllers/order/orde
 const card = require('@/controllers/thecao/CardController');
 const server = require('@/controllers/server/ServerController');
 const apiv2 = require('@/controllers/document/apiController'); // Đường dẫn đúng đến apiController
-const banking = require('@/controllers/banking/BankingController'); // Đường dẫn đúng đến bankingController
+const banking = require('../controllers/Banking/BankingController'); // Đường dẫn đúng đến bankingController
 const catagory = require('@/controllers/server/CatagoryController'); // Đường dẫn đúng đến CatagoryController
 const platform = require('@/controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
 //auth
