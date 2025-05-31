@@ -1,17 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const user = require("../controllers/user/userControlll");
-const authenticate = require('../controllers/Middleware/authenticate'); // Đường dẫn đúng đến file middleware
-const smm  = require('../controllers/Smm/smmController')
-const toolController = require("../controllers/tool/getuid");
-const {getStatistics } = require('../controllers/website/thongkeController');
-const { addOrder , deleteOrder , getOrders } = require('../controllers/order/orderController');
-const card = require('../controllers/thecao/CardController');
-const server = require('../controllers/server/ServerController');
-const apiv2 = require('../controllers/document/apiController'); // Đường dẫn đúng đến apiController
-const banking = require('../controllers/banking/BankingController'); // Đường dẫn đúng đến bankingController
-const catagory = require('../controllers/server/CatagoryController'); // Đường dẫn đúng đến CatagoryController
-const platform = require('../controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
+
+const user = require("@/controllers/user/userControlll"); // Đường dẫn đúng đến file userController
+const authenticate = require('@/controllers/Middleware/authenticate'); // Đường dẫn đúng đến file middleware
+const smm  = require('@/controllers/Smm/smmController')
+const toolController = require("@/controllers/tool/getuid");
+const {getStatistics } = require('@/controllers/website/thongkeController');
+const { addOrder , deleteOrder , getOrders } = require('@/controllers/order/orderController');
+const card = require('@/controllers/thecao/CardController');
+const server = require('@/controllers/server/ServerController');
+const apiv2 = require('@/controllers/document/apiController'); // Đường dẫn đúng đến apiController
+const banking = require('@/controllers/banking/BankingController'); // Đường dẫn đúng đến bankingController
+const catagory = require('@/controllers/server/CatagoryController'); // Đường dẫn đúng đến CatagoryController
+const platform = require('@/controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
 //auth
 router.post('/login', user.login);//ok
 router.post('/register', user.register);//ok
