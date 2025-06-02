@@ -1,12 +1,22 @@
 const axios = require("axios");
 const Card = require("../../models/Card");
+const ConfigCard = require("../../models/ConfigCard"); // Import mô hình ConfigCard
 
 // Hàm lấy trạng thái thẻ và lưu vào DB
 async function fetchAndSaveCardStatus() {
     try {
-        const partner_id = process.env.PARTNER_ID || "your_partner_id";
-        const url = process.env.API_URLCARD || "https://napthesieure.vn/chargingws/v2";
-        const apiUrl = `${url}/getfee?partner_id=${partner_id}`;
+        // Lấy cấu hình từ ConfigCard
+        const configCard = await ConfigCard.findOne();
+        if (!configCard) {
+            console.error("Cấu hình thẻ nạp không tồn tại");
+            return;
+        }
+
+        const partner_id = configCard.PARTNER_ID;
+        const api_urlcard = `${configCard.API_URLCARD}/chargingws/v2`;
+
+        // Tạo URL API
+        const apiUrl = `${api_urlcard}/getfee?partner_id=${partner_id}`;
         const response = await axios.get(apiUrl);
 
         if (!response.data || !Array.isArray(response.data)) {

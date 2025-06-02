@@ -13,6 +13,8 @@ const apiv2 = require('@/controllers/document/apiController'); // Đường dẫ
 const banking = require('../controllers/Banking/BankingController'); // Đường dẫn đúng đến bankingController
 const catagory = require('@/controllers/server/CatagoryController'); // Đường dẫn đúng đến CatagoryController
 const platform = require('@/controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
+const configwebController = require("../controllers/website/ConfigwebController");
+const configCardController = require("../controllers/website/configCardController");
 //auth
 router.post('/login', user.login);//ok
 router.post('/register', user.register);//ok
@@ -31,7 +33,8 @@ router.get('/user', authenticate.authenticateUser, user.getMe);// lấy thông t
 router.put('/user/changePassword/:id', authenticate.authenticateUser, user.changePassword); // ok cả admin và user
 router.get('/user/history', authenticate.authenticateUser, user.getHistory); // Lấy lịch sử giao dịch của người dùng
 router.get('/server', authenticate.authenticateUser, server.getServer); // Lấy thông tin lịch sử thẻ cào theo ID người dùng
-/// admin services
+router.get('/servers', authenticate.authenticateUser, server.getServerByTypeAndPath);
+// admin services
 router.post('/smm/create', authenticate.authenticateAdmin, smm.createPartner); // ok Thêm mới đối tác SMM
 router.get('/smm', authenticate.authenticateAdmin, smm.getAllPartners); // ok Lấy danh sách tất cả đối tác SMM
 router.get('/smm/:id', authenticate.authenticateAdmin, smm.getPartnerById); // ok Lấy thông tin một đối tác SMM theo ID
@@ -68,4 +71,10 @@ router.delete('/platforms/:id', authenticate.authenticateAdmin, platform.deleteP
 router.get('/platforms',authenticate.authenticateUser, platform.getPlatforms); // Lấy danh sách platform (không cần admin)
 // Định nghĩa route POST cho /api/tool/getUid
 router.post("/getUid", toolController.getUid);
+// Config web routes
+router.get("/configweb", authenticate.authenticateUser, configwebController.getConfigweb); // Lấy cấu hình website
+router.put("/configweb", authenticate.authenticateAdmin, configwebController.updateConfigweb); // Cập nhật cấu hình website
+// Config card routes
+router.get("/config-card",authenticate.authenticateAdmin, configCardController.getConfigCard); // Lấy cấu hình thẻ nạp
+router.put("/config-card", authenticate.authenticateAdmin ,configCardController.updateConfigCard); // Cập nhật cấu hình thẻ nạp
 module.exports = router;

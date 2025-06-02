@@ -7,7 +7,6 @@ const axios = require("axios");
  */
 exports.getUid = async (req, res) => {
   const { link } = req.body;
-
   // Kiểm tra xem link có được gửi lên hay không
   if (!link) {
     return res.status(400).json({

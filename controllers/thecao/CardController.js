@@ -3,6 +3,7 @@ const axios = require("axios");
 const Transaction = require("../../models/RechangeCard");
 const FormData = require("form-data");
 const Card = require("../../models/Card");
+const ConfigCard = require("../../models/ConfigCard"); // Import mô hình ConfigCard
 
 // Controller tạo transaction
 exports.createTransaction = async (req, res) => {
@@ -22,16 +23,24 @@ exports.createTransaction = async (req, res) => {
     const lastTransaction = await Transaction.findOne().sort({ request_id: -1 });
 
     let request_id = 1;
-    if (lastTransaction && typeof lastTransaction.request_id === 'number') {
+    if (lastTransaction && typeof lastTransaction.request_id === "number") {
       request_id = lastTransaction.request_id + 1;
     }
 
     let trans_id = 1;
-    if (lastTransaction && typeof lastTransaction.tran_id === 'number') {
+    if (lastTransaction && typeof lastTransaction.tran_id === "number") {
       trans_id = lastTransaction.tran_id + 1;
     }
-    const partner_id = process.env.PARTNER_ID || "your_partner_id";
-    const partner_key = process.env.PARTNER_KEY || "your_partner_key";
+
+    // Lấy cấu hình từ ConfigCard
+    const configCard = await ConfigCard.findOne();
+    if (!configCard) {
+      return res.status(500).json({ error: "Cấu hình thẻ nạp không tồn tại" });
+    }
+
+    const partner_id = configCard.PARTNER_ID;
+    const partner_key = configCard.PARTNER_KEY;
+    const api_urlcard = configCard.API_URLCARD;
 
     const sign = crypto
       .createHash("md5")
@@ -50,17 +59,16 @@ exports.createTransaction = async (req, res) => {
     formdata.append("sign", sign);
     formdata.append("command", command);
 
-    // Gửi yêu cầu lên API đối tác
-    const response = await axios.post(process.env.API_URLCARD, formdata, {
+    const response = await axios.post(`${api_urlcard}/chargingws/v2`, formdata, {
       headers: {
         ...formdata.getHeaders(),
       },
     });
+
     // Lấy phí cao nhất từ bảng Card
     const cardInfo = await Card.findOne({ telco: card_type }).sort({ fees: -1 });
     const percent_card = cardInfo ? Number(cardInfo.fees) : 0;
-    const chietkhau = card_value - (card_value * percent_card / 100);
-
+    const chietkhau = card_value - (card_value * percent_card) / 100;
 
     if (response.data.status === 3) {
       return res.status(500).json({ error: "Thẻ lỗi, kiểm tra lại thẻ" });
@@ -71,7 +79,6 @@ exports.createTransaction = async (req, res) => {
     if (response.data.status !== 102) {
       return res.status(500).json({ error: "Nạp thẻ thất bại, vui lòng thử lại sau" });
     }
-
 
     // Tạo bản ghi Transaction mới với request_id tăng dần
     const newTransaction = await Transaction.create({
@@ -85,7 +92,6 @@ exports.createTransaction = async (req, res) => {
       tran_id: trans_id,
       mota: "Nạp thẻ cào",
     });
-
 
     return res.status(201).json({
       message: "Nạp thẻ thành công",

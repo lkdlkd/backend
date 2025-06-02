@@ -145,7 +145,9 @@ async function addOrder(req, res) {
       comments: formattedComments,
     };
     const purchaseResponse = await smm.order(purchasePayload);
-
+    if (!purchaseResponse || !purchaseResponse.order) {
+      throw new Error('Lỗi khi mua dịch vụ, vui lòng thử lại sau');
+    }
     // Cập nhật số dư và lưu đơn hàng
     const newBalance = parseFloat((user.balance - totalCost).toFixed(2));
     user.balance = newBalance;

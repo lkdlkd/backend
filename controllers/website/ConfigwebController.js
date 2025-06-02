@@ -1,0 +1,67 @@
+const Configweb = require("../../models/Configweb");
+
+// Lấy thông tin cấu hình website
+exports.getConfigweb = async (req, res) => {
+    try {
+        let config = await Configweb.findOne();
+
+        // Nếu chưa có cấu hình, tạo một cấu hình mặc định
+        if (!config) {
+            config = new Configweb({
+                tieude: "",
+                logo: "",
+                favicon: "",
+                lienhe: [
+                    {
+                        type: "",
+                        value: "",
+                        logolienhe: "",
+                    },
+                    {
+                        type: "",
+                        value: "",
+                        logolienhe: "",
+                    },
+                ],
+            });
+            await config.save();
+        }
+
+        res.status(200).json({ success: true, data: config });
+    } catch (error) {
+        console.error("Lỗi khi lấy cấu hình website:", error);
+        res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+    }
+};
+
+// Cập nhật cấu hình website
+exports.updateConfigweb = async (req, res) => {
+  try {
+    const { tieude, logo, favicon, lienhe } = req.body;
+
+    // Tìm cấu hình hiện tại
+    const config = await Configweb.findOne();
+
+    if (!config) {
+      return res.status(404).json({ success: false, message: "Cấu hình website không tồn tại" });
+    }
+
+    // Kiểm tra và parse dữ liệu lienhe
+    if (lienhe && !Array.isArray(lienhe)) {
+      return res.status(400).json({ success: false, message: "Dữ liệu lienhe phải là một mảng" });
+    }
+
+    // Cập nhật cấu hình
+    config.tieude = tieude || config.tieude;
+    config.logo = logo || config.logo;
+    config.favicon = favicon || config.favicon;
+    config.lienhe = lienhe || config.lienhe;
+
+    await config.save();
+
+    res.status(200).json({ success: true, message: "Cấu hình website được cập nhật thành công", data: config });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật cấu hình website:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+  }
+};

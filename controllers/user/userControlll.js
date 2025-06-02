@@ -494,6 +494,7 @@ exports.getHistory = async (req, res) => {
       filter.username = currentUser.username;
       if (orderId) {
         filter.madon = orderId;
+        filter.search = link;
       }
     }
 

@@ -111,8 +111,12 @@ exports.getServer = async (req, res) => {
       const formattedServices = services.map(service => ({
         description: service.description,
         Magoi: service.Magoi,
-        id : service.id,
+        id: service.id,
         maychu: service.maychu,
+        getid: service.getid,//chức năng get id sau khi nhập link mua
+        comment: service.comment,//chức năng get id sau khi nhập link mua
+        reaction: service.reaction,//chức năng get id sau khi nhập link mua
+        matlive: service.matlive,//chức năng get id sau khi nhập link mua
         name: service.name,
         rate: service.rate,
         min: service.min,
@@ -166,5 +170,77 @@ exports.deleteServer = async (req, res) => {
     res.status(200).json({ success: true, message: 'Xóa dịch vụ thành công' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Lỗi khi xóa dịch vụ', error: error.message });
+  }
+};
+
+exports.getServerByTypeAndPath = async (req, res) => {
+  try {
+    const { type, path } = req.query;
+
+    // Tạo bộ lọc tìm kiếm
+    let filter = {};
+
+    if (type) {
+      filter.type = { $regex: type, $options: "i" }; // Không phân biệt chữ hoa/thường
+    }
+
+    if (path) {
+      filter["category.path"] = { $regex: path, $options: "i" }; // Không phân biệt chữ hoa/thường
+    }
+
+    // Lấy danh sách dịch vụ theo bộ lọc
+    // const services = await Service.find(filter).populate("category", "name path");
+    console.log("Filter:", filter);
+    const services = await Service.aggregate([
+      {
+        $lookup: {
+          from: "categories", // Tên collection Category
+          localField: "category",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      {
+        $unwind: "$category"
+      },
+      {
+        $match: {
+          type: { $regex: type, $options: "i" },
+          "category.path": { $regex: path, $options: "i" }
+        }
+      }
+    ]);
+    console.log("Services:", services);
+    // Định dạng lại dữ liệu trả về
+    const formattedServices = services.map(service => ({
+      description: service.description,
+      Magoi: service.Magoi,
+      id: service.id,
+      maychu: service.maychu,
+      name: service.name,
+      rate: service.rate,
+      min: service.min,
+      max: service.max,
+      getid: service.getid,//chức năng get id sau khi nhập link mua
+      comment: service.comment,//chức năng get id sau khi nhập link mua
+      reaction: service.reaction,//chức năng get id sau khi nhập link mua
+      matlive: service.matlive,//chức năng get id sau khi nhập link mua
+      type: service.type,
+      category: service.category.name, // Lấy tên của Category
+      path: service.category.path, // Lấy đường dẫn của Category
+      isActive: service.isActive,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formattedServices,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách dịch vụ theo type và path:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách dịch vụ",
+      error: error.message,
+    });
   }
 };

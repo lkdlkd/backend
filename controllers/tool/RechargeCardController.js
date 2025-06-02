@@ -5,6 +5,8 @@ const User = require("../../models/User");
 const axios = require("axios");
 const FormData = require("form-data");
 const cardModel = require("../../models/Card");
+const ConfigCard = require("../../models/ConfigCard"); // Import mô hình ConfigCard
+
 /**
  * Controller cập nhật trạng thái thẻ cào
  */
@@ -18,20 +20,34 @@ exports.rechargeCardStatus = async () => {
             console.log("Không có thẻ cào nào đang chờ xử lý.");
             return;
         }
-
+        // Lấy cấu hình từ ConfigCard
+        const configCard = await ConfigCard.findOne();
+        if (!configCard) {
+            console.error("Cấu hình thẻ nạp không tồn tại");
+            return;
+        }
         // Lấy cấu hình đối tác từ biến môi trường
-        const partner_id = process.env.PARTNER_ID || "your_partner_id";
-        const partner_key = process.env.PARTNER_KEY || "your_partner_key";
-        const apiUrl = process.env.API_URLCARD;
-
+        const partner_id = configCard.PARTNER_ID;
+        const partner_key = configCard.PARTNER_KEY;
+        const apiUrl = `${configCard.API_URLCARD}/chargingws/v2`;
+        console.log("Cấu hình đối tác:", {
+            partner_id,
+            partner_key,
+            apiUrl
+        });
         for (const card of pendingCards) {
             try {
+                // Kiểm tra nếu card không tồn tại hoặc thiếu thông tin cần thiết
+                if (!card || !card.code || !card.serial) {
+                    console.error(`Thẻ không hợp lệ hoặc thiếu thông tin: ${JSON.stringify(card)}`);
+                    continue;
+                }
+
                 // Tạo chữ ký MD5: partner_key + card.code + card.serial
                 const sign = crypto
                     .createHash("md5")
                     .update(partner_key + card.code + card.serial)
                     .digest("hex");
-
                 const command = "check";
                 // Tạo form-data để gửi đến API đối tác
                 const formdata = new FormData();
@@ -43,11 +59,10 @@ exports.rechargeCardStatus = async () => {
                 formdata.append("partner_id", partner_id);
                 formdata.append("sign", sign);
                 formdata.append("command", command);
-
                 // Gửi yêu cầu lên API đối tác
                 const statusCard = await axios.post(apiUrl, formdata, {
                     headers: formdata.getHeaders(),
-                    timeout: 15000
+                    timeout: 15000,
                 });
                 console.log("Trạng thái trả về từ API đối tác:", statusCard.data);
 
@@ -66,8 +81,13 @@ exports.rechargeCardStatus = async () => {
 
                         // Lấy phí cao nhất từ bảng Card
                         const cardInfo = await cardModel.findOne({ telco: card.type }).sort({ fees: -1 });
-                        const percent_card = cardInfo ? Number(cardInfo.fees) : 0;
-                        const chietkhau = card.amount - (card.amount * percent_card / 100);
+                        if (!cardInfo) {
+                            console.error(`Không tìm thấy thông tin phí cho nhà mạng: ${card.type}`);
+                            continue;
+                        }
+
+                        const percent_card = Number(cardInfo.fees) || 0;
+                        const chietkhau = card.amount - (card.amount * percent_card) / 100;
 
                         const note = `Bạn đã nạp thành công ${chietkhau.toLocaleString("vi-VN")} VNĐ từ thẻ cào. Số dư tài khoản của bạn là ${(userData.balance + chietkhau).toLocaleString("vi-VN")} VNĐ`;
 
