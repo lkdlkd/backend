@@ -246,7 +246,7 @@ exports.addBalance = async (req, res) => {
     } else {
       console.log("Thiếu thông tin cấu hình Telegram.");
     }
-    res.status(200).json({ message: "Cộng tiền thành công", user: updatedUser });
+    res.status(200).json({ message: "Cộng tiền thành công" });
   } catch (error) {
     console.error("Add balance error:", error);
     return res.status(500).json({ message: "Lỗi server" });
@@ -325,7 +325,7 @@ exports.deductBalance = async (req, res) => {
       console.log("Thiếu thông tin cấu hình Telegram.");
     }
 
-    return res.status(200).json({ message: "Trừ tiền thành công", user: updatedUser });
+    return res.status(200).json({ message: "Trừ tiền thành công" });
   } catch (error) {
     console.error("Deduct balance error:", error);
     return res.status(500).json({ message: "Lỗi server" });
@@ -344,7 +344,7 @@ exports.deleteUser = async (req, res) => {
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });
     }
-    return res.json({ message: "User deleted successfully" });
+    return res.json({ message: "Xóa user thành công" });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -405,9 +405,8 @@ exports.changePassword = async (req, res) => {
     await user.save();
 
     return res.status(200).json({
-      message: "Đổi mật khẩu thành công",
-      token: newToken,
-      apiKey: newApiKey, // Trả về API key mới
+      message: "Đổi mật khẩu thành công"
+
     });
   } catch (error) {
     console.error("Change password error:", error);

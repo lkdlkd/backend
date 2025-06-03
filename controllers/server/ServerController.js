@@ -190,7 +190,6 @@ exports.getServerByTypeAndPath = async (req, res) => {
 
     // Lấy danh sách dịch vụ theo bộ lọc
     // const services = await Service.find(filter).populate("category", "name path");
-    console.log("Filter:", filter);
     const services = await Service.aggregate([
       {
         $lookup: {
@@ -210,7 +209,6 @@ exports.getServerByTypeAndPath = async (req, res) => {
         }
       }
     ]);
-    console.log("Services:", services);
     // Định dạng lại dữ liệu trả về
     const formattedServices = services.map(service => ({
       description: service.description,

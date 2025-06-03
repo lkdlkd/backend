@@ -91,8 +91,12 @@ exports.deleteCategory = async (req, res) => {
 exports.getCategories = async (req, res) => {
   try {
     const categories = await Category.find()
-      .populate("platforms_id", "name logo") // Lấy thông tin Platform liên kết
-      .sort({ created_at: -1 }); // Sắp xếp theo ngày tạo (mới nhất trước)
+      .populate({
+        path: "platforms_id",
+        select: "name logo",
+        options: { sort: { createdAt: 1 } }, // Sắp xếp platforms_id theo thứ tự thêm trước
+      })
+      .sort({ createdAt: 1 }); // Sắp xếp categories theo thứ tự thêm trước
 
     res.status(200).json({ success: true, data: categories });
   } catch (error) {

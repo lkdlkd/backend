@@ -125,7 +125,7 @@ async function addOrder(req, res) {
     if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
 
     // Kiểm tra số dư và số lượng
-    const totalCost = Math.floor(serviceFromDb.rate * qty);
+    const totalCost = serviceFromDb.rate * qty;
     const apiRate = serviceFromApi.rate * smmSvConfig.tigia;
     if (apiRate > serviceFromDb.rate) {
       throw new Error('Lỗi khi mua dịch vụ, vui lòng ib admin');
@@ -149,7 +149,7 @@ async function addOrder(req, res) {
       throw new Error('Lỗi khi mua dịch vụ, vui lòng thử lại sau');
     }
     // Cập nhật số dư và lưu đơn hàng
-    const newBalance = parseFloat((user.balance - totalCost).toFixed(2));
+    const newBalance = user.balance - totalCost;
     user.balance = newBalance;
     await user.save();
 
@@ -167,7 +167,7 @@ async function addOrder(req, res) {
       link,
       start: 0,
       quantity: qty,
-      rate: parseFloat(serviceFromDb.rate.toFixed(2)),
+      rate: serviceFromDb.rate,
       totalCost,
       createdAt,
       status: 'Pending',

@@ -67,7 +67,7 @@ exports.AddOrder = async (req, res) => {
 
     // Kiểm tra xem token có được gửi không
     if (!key) {
-        return res.status(400).json({  error: "Token không được bỏ trống" });
+        return res.status(400).json({ error: "Token không được bỏ trống" });
     }
     // Lấy user từ DB dựa trên userId từ decoded token
     const user = await User.findOne({ apiKey: key });
@@ -124,8 +124,7 @@ exports.AddOrder = async (req, res) => {
         }
 
         // Tính tổng chi phí và làm tròn 2 số thập phân
-        const totalCost = parseFloat((serviceFromDb.rate * qty).toFixed(2));
-
+        const totalCost = serviceFromDb.rate * qty; // Kết quả: 123.4
         const apiRate = serviceFromApi.rate * smmSvConfig.tigia;
         if (apiRate > serviceFromDb.rate) {
             return res.status(400).json({ error: 'Lỗi khi mua dịch vụ, vui lòng ib admin' });
@@ -145,7 +144,7 @@ exports.AddOrder = async (req, res) => {
         if (qty > serviceFromDb.max) {
             return res.status(400).json({ error: 'Số lượng vượt quá giới hạn' });
         }
-        const currentBalance = parseFloat(user.balance.toFixed(2));
+        const currentBalance = user.balance;
         if (currentBalance < totalCost) {
             return res.status(400).json({ error: 'Số dư không đủ để thực hiện giao dịch' });
         }
@@ -169,8 +168,7 @@ exports.AddOrder = async (req, res) => {
         const tiencu = user.balance;
 
         // --- Bước 5: Trừ số tiền vào tài khoản người dùng ---
-        const newBalance = parseFloat((currentBalance - totalCost).toFixed(2));
-        user.balance = newBalance;
+        const newBalance = currentBalance - totalCost; user.balance = newBalance;
         await user.save();
 
         // --- Bước 6: Tạo mã đơn (Madon) ---
@@ -190,7 +188,7 @@ exports.AddOrder = async (req, res) => {
             link,
             start: purchaseResponse.data.start_count || 0,
             quantity: qty,
-            rate: parseFloat(serviceFromDb.rate.toFixed(2)),
+            rate: serviceFromDb.rate,
             totalCost,
             createdAt,
             status: purchaseResponse.data.status || 'Pending',
@@ -260,7 +258,7 @@ exports.getOrderStatus = async (req, res) => {
 
         // Kiểm tra xem API key có được gửi không
         if (!key) {
-            return res.status(400).json({error: "Token không được bỏ trống" });
+            return res.status(400).json({ error: "Token không được bỏ trống" });
         }
 
         // Tìm user dựa trên apiKey
@@ -271,7 +269,7 @@ exports.getOrderStatus = async (req, res) => {
 
         // Kiểm tra trạng thái người dùng
         if (user.status && user.status !== 'active') {
-            return res.status(403).json({  error: "Người dùng không hoạt động" });
+            return res.status(403).json({ error: "Người dùng không hoạt động" });
         }
 
         // Xử lý trường hợp có `orders` hoặc `order`
@@ -287,7 +285,7 @@ exports.getOrderStatus = async (req, res) => {
             orderNumbers = [Number(order)];
 
         } else {
-            return res.status(400).json({  error: "Danh sách đơn hàng không được bỏ trống" });
+            return res.status(400).json({ error: "Danh sách đơn hàng không được bỏ trống" });
         }
 
         // Lấy các đơn hàng từ DB
@@ -358,7 +356,7 @@ exports.getme = async (req, res) => {
 
         // Kiểm tra xem token có được gửi không
         if (!key) {
-            return res.status(400).json({  error: "Token không được bỏ trống" });
+            return res.status(400).json({ error: "Token không được bỏ trống" });
         }
         // Lấy user từ DB dựa trên userId từ decoded token
         const user = await User.findOne({ apiKey: key });
@@ -374,10 +372,10 @@ exports.getme = async (req, res) => {
         }
         // Kiểm tra trạng thái người dùng trong CSDL (ví dụ: 'active')
         if (!user) {
-            return res.status(404).json({  error: "Không tìm thấy người dùng" });
+            return res.status(404).json({ error: "Không tìm thấy người dùng" });
         }
         if (user.status && user.status !== 'active') {
-            return res.status(403).json({  error: "Người dùng không hoạt động" });
+            return res.status(403).json({ error: "Người dùng không hoạt động" });
         }
         // Định dạng các trường cần hiển thị (có thể điều chỉnh theo yêu cầu)
         const userForm = {
