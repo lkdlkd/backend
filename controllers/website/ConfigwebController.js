@@ -2,43 +2,43 @@ const Configweb = require("../../models/Configweb");
 
 // Lấy thông tin cấu hình website
 exports.getConfigweb = async (req, res) => {
-    try {
-        let config = await Configweb.findOne();
+  try {
+    let config = await Configweb.findOne();
 
-        // Nếu chưa có cấu hình, tạo một cấu hình mặc định
-        if (!config) {
-            config = new Configweb({
-                tieude: "",
-                logo: "",
-                favicon: "",
-                title : "",
-                lienhe: [
-                    {
-                        type: "",
-                        value: "",
-                        logolienhe: "",
-                    },
-                    {
-                        type: "",
-                        value: "",
-                        logolienhe: "",
-                    },
-                ],
-            });
-            await config.save();
-        }
-
-        res.status(200).json({ success: true, data: config });
-    } catch (error) {
-        console.error("Lỗi khi lấy cấu hình website:", error);
-        res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+    // Nếu chưa có cấu hình, tạo một cấu hình mặc định
+    if (!config) {
+      config = new Configweb({
+        tieude: "",
+        logo: "",
+        favicon: "",
+        title: "",
+        lienhe: [
+          {
+            type: "",
+            value: "",
+            logolienhe: "",
+          },
+          {
+            type: "",
+            value: "",
+            logolienhe: "",
+          },
+        ],
+      });
+      await config.save();
     }
+
+    res.status(200).json({ success: true, data: config });
+  } catch (error) {
+    console.error("Lỗi khi lấy cấu hình website:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
+  }
 };
 
 // Cập nhật cấu hình website
 exports.updateConfigweb = async (req, res) => {
   try {
-    const { tieude,title, logo, favicon, lienhe } = req.body;
+    const { tieude, title, logo, favicon, lienhe } = req.body;
 
     // Tìm cấu hình hiện tại
     const config = await Configweb.findOne();
@@ -53,12 +53,12 @@ exports.updateConfigweb = async (req, res) => {
     }
 
     // Cập nhật cấu hình
-    config.tieude = tieude || config.tieude;
-    config.title = title || config.title;
-    config.logo = logo || config.logo;
-    config.favicon = favicon || config.favicon;
-    config.lienhe = lienhe || config.lienhe;
-
+    config.tieude = tieude !== undefined ? tieude : "";
+    config.title = title !== undefined ? title : "";
+    config.logo = logo !== undefined ? logo : "";
+    config.favicon = favicon !== undefined ? favicon : "";
+    config.lienhe = lienhe !== undefined ? lienhe : [];
+    
     await config.save();
 
     res.status(200).json({ success: true, message: "Cấu hình website được cập nhật thành công", data: config });
