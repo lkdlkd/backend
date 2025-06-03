@@ -11,6 +11,7 @@ exports.getConfigweb = async (req, res) => {
                 tieude: "",
                 logo: "",
                 favicon: "",
+                title : "",
                 lienhe: [
                     {
                         type: "",
@@ -37,7 +38,7 @@ exports.getConfigweb = async (req, res) => {
 // Cập nhật cấu hình website
 exports.updateConfigweb = async (req, res) => {
   try {
-    const { tieude, logo, favicon, lienhe } = req.body;
+    const { tieude,title, logo, favicon, lienhe } = req.body;
 
     // Tìm cấu hình hiện tại
     const config = await Configweb.findOne();
@@ -53,6 +54,7 @@ exports.updateConfigweb = async (req, res) => {
 
     // Cập nhật cấu hình
     config.tieude = tieude || config.tieude;
+    config.title = title || config.title;
     config.logo = logo || config.logo;
     config.favicon = favicon || config.favicon;
     config.lienhe = lienhe || config.lienhe;

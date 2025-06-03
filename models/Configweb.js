@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const configwebSchema = new mongoose.Schema({
   tieude: { type: String, default: "" },
+  title : { type: String, default: "" },
   logo: { type: String, default: "" },
   favicon: { type: String, default: "" },
   lienhe: [
