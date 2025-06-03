@@ -113,7 +113,7 @@ exports.AddOrder = async (req, res) => {
         const smm = new SmmApiService(smmSvConfig.url_api, smmSvConfig.api_token);
         const allServices = await smm.services();
         
-        const serviceFromApi = allServices.find(s => s.service === Number(serviceFromDb.serviceId));
+        const serviceFromApi = allServices.find(s => s.service === serviceFromDb.serviceId);
         if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
 
 

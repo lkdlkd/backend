@@ -121,9 +121,12 @@ async function addOrder(req, res) {
 
     const smm = new SmmApiService(smmSvConfig.url_api, smmSvConfig.api_token);
     const allServices = await smm.services();
-    const serviceFromApi = allServices.find(s => s.service === Number(serviceFromDb.serviceId));
-    if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
+    console.log('Tất cả dịch vụ từ API:', allServices);
+    console.log('Dịch vụ từ DB:', serviceFromDb.serviceId);
+    const serviceFromApi = allServices.find(s => s.service === serviceFromDb.serviceId);
+    console.log('Dịch vụ từ API:', serviceFromApi);
 
+    if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
     // Kiểm tra số dư và số lượng
     const totalCost = serviceFromDb.rate * qty;
     const apiRate = serviceFromApi.rate * smmSvConfig.tigia;
