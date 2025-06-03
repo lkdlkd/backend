@@ -16,6 +16,22 @@ app.use(cors());
 const path = require('path');
 global.__basedir = path.resolve(__dirname);
 
+
+// Cấu hình CORS cho các API khác
+const corsOptions = {
+    origin: process.env.URL_WEBSITE, // Chỉ cho phép domain này
+};
+
+// Middleware CORS tùy chỉnh
+app.use((req, res, next) => {
+    if (req.path.startsWith("/api/v2")) {
+        // Không áp dụng CORS cho /api/v2
+        next();
+    } else {
+        // Áp dụng CORS cho các API khác
+        cors(corsOptions)(req, res, next);
+    }
+});
 // Kết nối MongoDB
 connectDB();
 app.get('/', (req, res) => {
