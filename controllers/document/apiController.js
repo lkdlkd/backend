@@ -5,6 +5,7 @@ const Order = require('../../models/Order');
 const HistoryUser = require('../../models/History');
 const User = require('../../models/User');
 const SmmSv = require("../../models/SmmSv");
+const SmmApiService = require('../Smm/smmServices'); // Giả sử bạn có một lớp để xử lý API SMM
 
 /* Hàm lấy danh sách dịch vụ */
 exports.getServices = async (req, res) => {
@@ -59,69 +60,62 @@ exports.getServices = async (req, res) => {
         });
     }
 };
+async function fetchSmmConfig(domain) {
+    const smmSvConfig = await SmmSv.findOne({ name: domain });
+    if (!smmSvConfig || !smmSvConfig.url_api || !smmSvConfig.api_token) {
+        throw new Error('Lỗi khi mua dịch vụ, vui lòng ib admin');
+    }
+    return smmSvConfig;
+}
 
+async function fetchServiceData(magoi) {
+    const serviceFromDb = await Service.findOne({ Magoi: magoi });
+    if (!serviceFromDb) throw new Error('Dịch vụ không tồn tại');
+    return serviceFromDb;
+}
 exports.AddOrder = async (req, res) => {
     // Lấy token từ req.body
     const { key, link, quantity, service, comments } = req.body;
     const magoi = service;
 
-    // Kiểm tra xem token có được gửi không
     if (!key) {
         return res.status(400).json({ error: "Token không được bỏ trống" });
     }
-    // Lấy user từ DB dựa trên userId từ decoded token
     const user = await User.findOne({ apiKey: key });
     if (!user) {
         res.status(404).json({ error: 'Người dùng không tồn tại' });
         return null;
     }
-
-    // So sánh token trong header với token đã lưu của user
     if (user.apiKey !== key) {
         res.status(401).json({ error: 'api Key không hợp lệ1' });
         return null;
     }
-    // Kiểm tra trạng thái người dùng trong CSDL (ví dụ: 'active')
     if (!user) {
         return res.status(404).json({ success: false, error: "Không tìm thấy người dùng" });
     }
     if (user.status && user.status !== 'active') {
         return res.status(403).json({ success: false, error: "Người dùng không hoạt động" });
     }
+
+
     const username = user.username
     const qty = Number(quantity);
     const formattedComments = comments ? comments.replace(/\r?\n/g, "\r\n") : "";
 
     try {
         // --- Bước 1: Lấy thông tin dịch vụ từ CSDL ---
-        const serviceFromDb = await Service.findOne({ Magoi: magoi });
+        const serviceFromDb = await fetchServiceData(magoi);
         if (!serviceFromDb) {
             return res.status(400).json({ error: 'Dịch vụ không tồn tại' });
         }
-        // console.log("Service from DB:", serviceFromDb);
+        const smmSvConfig = await fetchSmmConfig(serviceFromDb.DomainSmm);
 
-        // --- Lấy cấu hình API từ CSDL ---
-        const smmSvConfig = await SmmSv.findOne({ name: serviceFromDb.DomainSmm });
-        if (!smmSvConfig || !smmSvConfig.url_api || !smmSvConfig.api_token) {
-            return res.status(500).json({ error: 'Lỗi khi mua dịch vụ, vui lòng ib admin' });
-        }
-        // console.log("SMM Config:", smmSvConfig);
+        const smm = new SmmApiService(smmSvConfig.url_api, smmSvConfig.api_token);
+        const allServices = await smm.services();
+        
+        const serviceFromApi = allServices.find(s => s.service === Number(serviceFromDb.serviceId));
+        if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
 
-        // --- Bước 2: Gửi yêu cầu lấy thông tin dịch vụ từ API bên thứ 3 ---
-        const serviceResponse = await axios.post(smmSvConfig.url_api, {
-            key: smmSvConfig.api_token,
-            action: 'services',
-        });
-
-        if (!serviceResponse.data || !Array.isArray(serviceResponse.data)) {
-            return res.status(400).json({ error: 'Không thể lấy dữ liệu dịch vụ' });
-        }
-        const serviceFromApi = serviceResponse.data.find(
-            service => service.service === Number(serviceFromDb.serviceId)
-        );
-        if (!serviceFromApi) {
-            return res.status(400).json({ error: 'Dịch vụ không tồn tại' });
-        }
 
         // Tính tổng chi phí và làm tròn 2 số thập phân
         const totalCost = serviceFromDb.rate * qty; // Kết quả: 123.4
@@ -144,31 +138,27 @@ exports.AddOrder = async (req, res) => {
         if (qty > serviceFromDb.max) {
             return res.status(400).json({ error: 'Số lượng vượt quá giới hạn' });
         }
-        const currentBalance = user.balance;
-        if (currentBalance < totalCost) {
-            return res.status(400).json({ error: 'Số dư không đủ để thực hiện giao dịch' });
+        if (user.balance < totalCost) {
+            throw new Error('Số dư không đủ để thực hiện giao dịch');
         }
 
         // --- Bước 4: Gửi yêu cầu mua dịch vụ qua API bên thứ 3 ---
         const purchasePayload = {
-            key: smmSvConfig.api_token,
-            action: 'add',
             link,
             quantity: qty,
             service: serviceFromDb.serviceId,
             comments: formattedComments,
         };
 
-        const purchaseResponse = await axios.post(smmSvConfig.url_api, purchasePayload);
-        if (!purchaseResponse.data || purchaseResponse.data.error) {
-            return res.status(400).json({
-                error: 'Lỗi khi mua dịch vụ, vui lòng ib admin',
-            });
+        const purchaseResponse = await smm.order(purchasePayload);
+        if (!purchaseResponse || !purchaseResponse.order) {
+            throw new Error('Lỗi khi mua dịch vụ, vui lòng thử lại sau');
         }
         const tiencu = user.balance;
 
         // --- Bước 5: Trừ số tiền vào tài khoản người dùng ---
-        const newBalance = currentBalance - totalCost; user.balance = newBalance;
+        const newBalance = user.balance - totalCost;
+        user.balance = newBalance;
         await user.save();
 
         // --- Bước 6: Tạo mã đơn (Madon) ---
@@ -181,17 +171,16 @@ exports.AddOrder = async (req, res) => {
             Madon: newMadon,
             username,
             SvID: serviceFromDb.serviceId,
-
-            orderId: purchaseResponse.data.order,
-            namesv: serviceFromDb.maychu + " " + serviceFromDb.name,
+            orderId: purchaseResponse.order,
+            namesv: `${serviceFromDb.maychu} ${serviceFromDb.name}`,
             category: serviceFromDb.category,
             link,
-            start: purchaseResponse.data.start_count || 0,
+            start: purchaseResponse.start_count || 0,
             quantity: qty,
             rate: serviceFromDb.rate,
             totalCost,
             createdAt,
-            status: purchaseResponse.data.status || 'Pending',
+            status: purchaseResponse.status || 'Pending',
             note: "",  // Gán mặc định là chuỗi rỗng khi không có note
             comments: formattedComments,
         });
@@ -201,11 +190,11 @@ exports.AddOrder = async (req, res) => {
             madon: newMadon,
             hanhdong: 'Tạo đơn hàng',
             link,
-            tienhientai: tiencu,
+            tienhientai: user.balance + totalCost,
             tongtien: totalCost,
             tienconlai: newBalance,
             createdAt,
-            mota: ' Tăng ' + serviceFromDb.maychu + " " + serviceFromDb.name + ' thành công cho uid ' + link,
+            mota: `Tăng ${serviceFromDb.maychu} ${serviceFromDb.name} thành công cho uid ${link}`,
         });
 
         console.log('Order:', orderData);

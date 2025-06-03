@@ -74,7 +74,7 @@ exports.getServer = async (req, res) => {
         DomainSmm: service.DomainSmm,
         serviceName: service.serviceName,
         originalRate: service.originalRate,
-        category: service.category.name,// Lấy tên của Category
+        category: service.category ? service.category.name : "Không xác định", // Kiểm tra nếu category tồn tại
         description: service.description,
         Magoi: service.Magoi,
         type: service.type, // Loại dịch vụ
