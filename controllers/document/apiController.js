@@ -112,9 +112,14 @@ exports.AddOrder = async (req, res) => {
 
         const smm = new SmmApiService(smmSvConfig.url_api, smmSvConfig.api_token);
         const allServices = await smm.services();
-        
-        const serviceFromApi = allServices.find(s => s.service === serviceFromDb.serviceId);
-        if (!serviceFromApi) throw new Error('Dịch vụ không tồn tại');
+        console.log('Service from API:', serviceFromDb.serviceId);
+
+        console.log('All Services:', allServices);
+        const serviceFromApi = allServices.find(
+            s => s.service === Number(serviceFromDb.serviceId) || s.service === serviceFromDb.serviceId
+        );
+        console.log('Service from API:', serviceFromApi);
+        if (!serviceFromApi) throw new Error('lỗi khi mua dịch vụ, vui lòng ib admin11');
 
 
         // Tính tổng chi phí và làm tròn 2 số thập phân
