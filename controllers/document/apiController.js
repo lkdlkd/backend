@@ -36,18 +36,19 @@ exports.getServices = async (req, res) => {
             return res.status(403).json({ success: false, error: "Người dùng không hoạt động" });
         }
         // Lấy danh sách dịch vụ từ CSDL
-        const services = await Service.find();
+        const services = await Service.find()
+            .populate("category", "name"); // Lấy thông tin tên của Category
         // Định dạng các trường cần hiển thị
         const formattedServices = services.map(service => ({
             service: service.Magoi,
             name: `${service.maychu} ${service.name}`, // Đảm bảo có khoảng trắng
-            type: service.type,
-            category: service.category,
+            type: "Default", // Hoặc lấy từ service.type nếu có
+            category: service.category.name || "Không xác định", // Kiểm tra nếu category tồn tại
             rate: service.rate / 25,
             min: service.min,
             max: service.max,
-            cancel: service.isActive,
-            currency: "USD",
+            cancel: false,
+            refill: false,
         }));
 
         return res.status(200).json(formattedServices);
@@ -69,13 +70,13 @@ async function fetchSmmConfig(domain) {
 }
 
 async function fetchServiceData(magoi) {
-    const serviceFromDb = await Service.findOne({ Magoi: magoi });
+    const serviceFromDb = await Service.findOne({ Magoi: magoi }).populate("category", "name");;
     if (!serviceFromDb) throw new Error('Dịch vụ không tồn tại');
     return serviceFromDb;
 }
 exports.AddOrder = async (req, res) => {
     // Lấy token từ req.body
-    const { key, link, quantity, service, comments } = req.body;
+    const { key, service, link, quantity, comments } = req.body;
     const magoi = service;
 
     if (!key) {
@@ -105,9 +106,6 @@ exports.AddOrder = async (req, res) => {
     try {
         // --- Bước 1: Lấy thông tin dịch vụ từ CSDL ---
         const serviceFromDb = await fetchServiceData(magoi);
-        if (!serviceFromDb) {
-            return res.status(400).json({ error: 'Dịch vụ không tồn tại' });
-        }
         const smmSvConfig = await fetchSmmConfig(serviceFromDb.DomainSmm);
 
         const smm = new SmmApiService(smmSvConfig.url_api, smmSvConfig.api_token);
@@ -132,16 +130,8 @@ exports.AddOrder = async (req, res) => {
         if (!serviceFromDb.isActive) {
             return res.status(400).json({ error: "Dịch vụ bảo trì, vui lòng mua sv khác" });
         }
-        // --- Bước 3: Kiểm tra số dư tài khoản của người dùng ---
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(400).json({ error: 'Người dùng không tồn tại' });
-        }
-        if (qty < serviceFromDb.min) {
-            return res.status(400).json({ error: 'Vui lòng nhập số lượng lớn hơn' });
-        }
-        if (qty > serviceFromDb.max) {
-            return res.status(400).json({ error: 'Số lượng vượt quá giới hạn' });
+        if (qty < serviceFromDb.min || qty > serviceFromDb.max) {
+            throw new Error('Số lượng không hợp lệ');
         }
         if (user.balance < totalCost) {
             throw new Error('Số dư không đủ để thực hiện giao dịch');
@@ -159,7 +149,6 @@ exports.AddOrder = async (req, res) => {
         if (!purchaseResponse || !purchaseResponse.order) {
             throw new Error('Lỗi khi mua dịch vụ, vui lòng thử lại sau');
         }
-        const tiencu = user.balance;
 
         // --- Bước 5: Trừ số tiền vào tài khoản người dùng ---
         const newBalance = user.balance - totalCost;
@@ -178,14 +167,14 @@ exports.AddOrder = async (req, res) => {
             SvID: serviceFromDb.serviceId,
             orderId: purchaseResponse.order,
             namesv: `${serviceFromDb.maychu} ${serviceFromDb.name}`,
-            category: serviceFromDb.category,
+            category: serviceFromDb.category.name || "Không xác định", // Kiểm tra nếu category tồn tại
             link,
-            start: purchaseResponse.start_count || 0,
+            start: 0,
             quantity: qty,
             rate: serviceFromDb.rate,
             totalCost,
             createdAt,
-            status: purchaseResponse.status || 'Pending',
+            status: 'Pending',
             note: "",  // Gán mặc định là chuỗi rỗng khi không có note
             comments: formattedComments,
         });
@@ -211,40 +200,47 @@ exports.AddOrder = async (req, res) => {
         console.log('Order saved successfully!');
 
         // --- Bước 8: Gửi thông báo về Telegram ---
-        const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-        const telegramChatId = process.env.TELEGRAM_CHAT_ID;
-        if (telegramBotToken && telegramChatId) {
-            const telegramMessage = `📌 *Đơn hàng mới đã được tạo!*\n\n` +
-                `👤 *Khách hàng:* ${username}\n` +
-                `🔹 *Dịch vụ:* ${serviceFromDb.name}\n` +
-                `🔗 *Link:* ${link}\n` +
-                `📌 *Số lượng:* ${qty}\n` +
-                `💰 *TIền cũ:* ${tiencu.toLocaleString()} VNĐ\n` +
-                `💰 *Tổng tiền:* ${totalCost.toLocaleString()} VNĐ\n` +
-                `💰 *TIền còn lại:* ${newBalance.toLocaleString()} VNĐ\n` +
-                `🆔 *Mã đơn:* ${newMadon}\n` +
-                `📆 *Ngày tạo:* ${createdAt.toLocaleString()}\n` +
-                `📝 *Ghi chú:* ${'Không có'}`;
+        const telegramMessage = `📌 *Đơn hàng mới đã được tạo!*\n\n` +
+            `👤 *Khách hàng:* ${username}\n` +
+            `🔹 *Dịch vụ:* ${serviceFromDb.name}\n` +
+            `🔗 *Link:* ${link}\n` +
+            `📌 *Số lượng:* ${qty}\n` +
+            `💰 *TIền cũ:* ${(user.balance + totalCost).toLocaleString()} VNĐ\n` +
+            `💰 *Tổng tiền:* ${totalCost.toLocaleString()} VNĐ\n` +
+            `💰 *TIền còn lại:* ${newBalance.toLocaleString()} VNĐ\n` +
+            `🆔 *Mã đơn:* ${newMadon}\n` +
+            `📆 *Ngày tạo:* ${createdAt.toLocaleString()}\n` +
+            `📝 *Ghi chú:* ${'Không có'}`;
 
-            try {
-                await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-                    chat_id: telegramChatId,
-                    text: telegramMessage,
-                });
-                console.log('Thông báo Telegram đã được gửi.');
-            } catch (telegramError) {
-                console.error('Lỗi gửi thông báo Telegram:', telegramError.message);
-            }
-        } else {
-            console.log('Thiếu thông tin cấu hình Telegram.');
-        }
-
+        await sendTelegramNotification({
+            telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+            telegramChatId: process.env.TELEGRAM_CHAT_ID,
+            message: telegramMessage,
+        });
         res.status(200).json({ order: newMadon });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Không thể thêm đơn hàng', error: error.message });
     }
 };
+
+async function sendTelegramNotification(data) {
+    const { telegramBotToken, telegramChatId, message } = data;
+    if (telegramBotToken && telegramChatId) {
+        try {
+            await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                chat_id: telegramChatId,
+                text: message,
+            });
+            console.log('Thông báo Telegram đã được gửi.');
+        } catch (error) {
+            console.error('Lỗi gửi thông báo Telegram:', error.message);
+        }
+    } else {
+        console.log('Thiếu thông tin cấu hình Telegram.');
+    }
+}
+
 /* Hàm lấy danh sách dịch vụ */
 exports.getOrderStatus = async (req, res) => {
     try {
