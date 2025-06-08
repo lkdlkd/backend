@@ -15,6 +15,7 @@ const catagory = require('@/controllers/server/CatagoryController'); // Đườn
 const platform = require('@/controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
 const configwebController = require("../controllers/website/ConfigwebController");
 const configCardController = require("../controllers/website/configCardController");
+const SmmController = require('../controllers/Smm/Smm');
 //auth
 router.post('/login', user.login);//ok
 router.post('/register', user.register);//ok
@@ -77,4 +78,11 @@ router.put("/configweb", authenticate.authenticateAdmin, configwebController.upd
 // Config card routes
 router.get("/config-card",authenticate.authenticateAdmin, configCardController.getConfigCard); // Lấy cấu hình thẻ nạp
 router.put("/config-card", authenticate.authenticateAdmin ,configCardController.updateConfigCard); // Cập nhật cấu hình thẻ nạp
+
+// Route để lấy số dư từ SMM
+router.get('/getbalance/:id', authenticate.authenticateAdmin, SmmController.getBalance);
+// Route để lấy danh sách dịch vụ từ SMM
+router.get('/getservices/:id', authenticate.authenticateAdmin, SmmController.getServices);
+
+
 module.exports = router;
