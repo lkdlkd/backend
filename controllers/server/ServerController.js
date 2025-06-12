@@ -209,6 +209,13 @@ exports.getServerByTypeAndPath = async (req, res) => {
         }
       }
     ]);
+    // Lấy thông tin `note` và `modal_show` duy nhất từ `category`
+    const uniqueNotes = services.length > 0
+      ? {
+        note: services[0].category.notes || "",
+        modal_show: services[0].category.modal_show || "",
+      }
+      : { note: "", modal_show: "" };
     // Định dạng lại dữ liệu trả về
     const formattedServices = services.map(service => ({
       description: service.description,
@@ -231,6 +238,7 @@ exports.getServerByTypeAndPath = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      notes: uniqueNotes,
       data: formattedServices,
     });
   } catch (error) {
