@@ -35,20 +35,21 @@ function extractUsername(description) {
 // Hàm tính tiền thưởng khuyến mãi (nếu có)
 // Hàm tính tiền thưởng khuyến mãi (nếu có)
 async function calculateBonus(amount) {
-    const now = new Date();
+    const now = new Date(); // giờ local
+    const nowUtc = new Date(now.toISOString()); // hoặc: new Date(Date.now())
 
     const promo = await Promotion.findOne({
-        startTime: { $lte: now },
-        endTime: { $gte: now },
+        startTime: { $lte: nowUtc },
+        endTime: { $gte: nowUtc },
     });
+    if (!promo) {
+        console.log("⚠️ Không có chương trình khuyến mãi");
+        return 0; // Không có khuyến mãi, trả về 0
+    }
     // Kiểm tra nếu số tiền nhỏ hơn minAmount
     if (amount < promo.minAmount) {
         console.log(`⚠️ Số tiền (${amount}) nhỏ hơn số tiền tối thiểu (${promo.minAmount}) để được khuyến mãi`);
         return 0; // Không áp dụng khuyến mãi
-    }
-    if (!promo) {
-        console.log("⚠️ Không có chương trình khuyến mãi");
-        return 0; // Không có khuyến mãi, trả về 0
     }
 
     console.log(`🎉 Chương trình khuyến mãi: ${promo.name} - Tỷ lệ: ${promo.percentBonus}%`);
@@ -117,19 +118,7 @@ cron.schedule('*/30 * * * * *', async () => {
                             // Cập nhật tổng số tiền nạp
                             user.tongnap = (user.tongnap || 0) + totalAmount;
 
-                            // Cập nhật tổng số tiền nạp trong tháng
-                            const now = new Date();
-                            const currentMonth = now.getMonth();
-                            const currentYear = now.getFullYear();
-
-                            // Kiểm tra nếu tháng hiện tại khác với tháng lưu trữ trước đó
-                            if (!user.lastNapMonth || user.lastNapMonth !== currentMonth || user.lastNapYear !== currentYear) {
-                                user.tongnapthang = 0; // Reset tổng nạp tháng nếu sang tháng mới
-                                user.lastNapMonth = currentMonth;
-                                user.lastNapYear = currentYear;
-                            }
-
-                            user.tongnapthang += totalAmount;
+                            user.tongnapthang = (user.tongnapthang || 0) + totalAmount;
 
                             // Lưu lịch sử giao dịch
                             const historyData = new HistoryUser({
