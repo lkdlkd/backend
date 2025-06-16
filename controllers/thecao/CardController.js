@@ -69,6 +69,9 @@ exports.createTransaction = async (req, res) => {
     const cardInfo = await Card.findOne({ telco: card_type }).sort({ fees: -1 });
     const percent_card = cardInfo ? Number(cardInfo.fees) : 0;
     const chietkhau = card_value - (card_value * percent_card) / 100;
+    console.log("Chiet khau:", response);
+    console.log("dataa:", response.data);
+    console.log("status:", response.data.status);
 
     if (response.data.status === 3) {
       return res.status(500).json({ error: "Thẻ lỗi, kiểm tra lại thẻ" });
@@ -76,7 +79,10 @@ exports.createTransaction = async (req, res) => {
     if (response.data.status === 4) {
       return res.status(500).json({ error: "Thẻ lỗi, kiểm tra lại thẻ" });
     }
-    if (response.data.status !== 102) {
+    if (response.data.status === 102) {
+      return res.status(500).json({ error: "Nạp thẻ thất bại, vui lòng thử lại sau" });
+    }
+        if (response.data.status === 100) {
       return res.status(500).json({ error: "Nạp thẻ thất bại, vui lòng thử lại sau" });
     }
 
