@@ -136,7 +136,30 @@ cron.schedule('*/30 * * * * *', async () => {
                             });
                             await historyData.save();
                             await user.save();
+                            // **Thông báo qua Telegram**
+                            const taoluc = new Date();
+                            const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+                            const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+                            if (telegramBotToken && telegramChatId) {
+                                const telegramMessage =
+                                    `📌 *Giao dịch thành công!*\n\n` +
+                                    `👤 *Khách hàng:* ${username}\n` +
+                                    `💰 *Số tiền nạp:* ${amount}\n` +
+                                    `🎁 *Khuyến mãi:* ${bonus}\n` +
+                                    `🔹 *Tổng cộng:* ${totalAmount}\n` +
+                                    `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
 
+                                try {
+                                    await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                                        chat_id: telegramChatId,
+                                        text: telegramMessage,
+                                        parse_mode: "Markdown",
+                                    });
+                                    console.log("Thông báo Telegram đã được gửi.");
+                                } catch (telegramError) {
+                                    console.error("Lỗi gửi thông báo Telegram:", telegramError.message);
+                                }
+                            }
                         } else {
                             console.log(`⚠️ Không tìm thấy user: ${username}`);
                         }
