@@ -34,7 +34,8 @@ const historyUserSchema = new mongoose.Schema({
     mota: {
         type: String,
         required: false
-    }
+    },
+    domain: { type: String, default: null },
 });
 
 const HistoryUser = mongoose.model('HistoryUser', historyUserSchema);

@@ -3,10 +3,10 @@ const router = express.Router();
 
 const user = require("@/controllers/user/userControlll"); // Đường dẫn đúng đến file userController
 const authenticate = require('@/controllers/Middleware/authenticate'); // Đường dẫn đúng đến file middleware
-const smm  = require('@/controllers/Smm/smmController')
+const smm = require('@/controllers/Smm/smmController')
 const toolController = require("@/controllers/tool/getuid");
-const {getStatistics } = require('@/controllers/website/thongkeController');
-const { addOrder , deleteOrder , getOrders } = require('@/controllers/order/orderController');
+const { getStatistics } = require('@/controllers/website/thongkeController');
+const { addOrder, deleteOrder, getOrders } = require('@/controllers/order/orderController');
 const card = require('@/controllers/thecao/CardController');
 const server = require('@/controllers/server/ServerController');
 const apiv2 = require('@/controllers/document/apiController'); // Đường dẫn đúng đến apiController
@@ -15,6 +15,8 @@ const catagory = require('@/controllers/server/CatagoryController'); // Đườn
 const platform = require('@/controllers/server/PlatformController'); // Đường dẫn đúng đến PlatformController
 const configwebController = require("../controllers/website/ConfigwebController");
 const configCardController = require("../controllers/website/configCardController");
+const { createPromotion, updatePromotion, deletePromotion, getPromotions } = require('../controllers/Khuyenmai/KhuyenmaiController');
+
 const SmmController = require('../controllers/Smm/Smm');
 //auth
 router.post('/login', user.login);//ok
@@ -51,7 +53,7 @@ router.get('/order', authenticate.authenticateUser, getOrders); // ok Lấy danh
 // router admin
 router.put('/user/update/:id', authenticate.authenticateAdmin, user.updateUser); // ok Cập nhật thông tin người dùng
 router.post('/user/addbalance/:id', authenticate.authenticateAdmin, user.addBalance); //ok Thêm tiền vào tài khoản người dùng
-router.post('/user/deductbalance/:id',authenticate.authenticateAdmin, user.deductBalance); // Trừ tiền từ tài khoản người dùng
+router.post('/user/deductbalance/:id', authenticate.authenticateAdmin, user.deductBalance); // Trừ tiền từ tài khoản người dùng
 router.delete('/user/delete/:id', authenticate.authenticateAdmin, user.deleteUser); // Xóa người dùng
 router.get('/users', authenticate.authenticateAdmin, user.getUsers); // Lấy danh sách tất cả người dùng
 router.get('/thongke', authenticate.authenticateAdmin, getStatistics); // Lấy thông tin người dùng theo ID
@@ -63,26 +65,33 @@ router.post('/banking/create', authenticate.authenticateAdmin, banking.createBan
 router.post('/categories', authenticate.authenticateAdmin, catagory.addCategory); // Thêm mới category (chỉ admin)
 router.put('/categories/:id', authenticate.authenticateAdmin, catagory.updateCategory); // Cập nhật category (chỉ admin)
 router.delete('/categories/:id', authenticate.authenticateAdmin, catagory.deleteCategory); // Xóa category (chỉ admin)
-router.get('/categories',authenticate.authenticateUser, catagory.getCategories); // Lấy danh sách category (không cần admin)
+router.get('/categories', authenticate.authenticateUser, catagory.getCategories); // Lấy danh sách category (không cần admin)
 
 // Platform routes
 router.post('/platforms', authenticate.authenticateAdmin, platform.addPlatform); // Thêm mới platform (chỉ admin)
 router.put('/platforms/:id', authenticate.authenticateAdmin, platform.updatePlatform); // Cập nhật platform (chỉ admin)
 router.delete('/platforms/:id', authenticate.authenticateAdmin, platform.deletePlatform); // Xóa platform (chỉ admin)
-router.get('/platforms',authenticate.authenticateUser, platform.getPlatforms); // Lấy danh sách platform (không cần admin)
+router.get('/platforms', authenticate.authenticateUser, platform.getPlatforms); // Lấy danh sách platform (không cần admin)
 // Định nghĩa route POST cho /api/tool/getUid
 router.post("/getUid", toolController.getUid);
 // Config web routes
 router.get("/configweb", authenticate.authenticateUser, configwebController.getConfigweb); // Lấy cấu hình website
 router.put("/configweb", authenticate.authenticateAdmin, configwebController.updateConfigweb); // Cập nhật cấu hình website
 // Config card routes
-router.get("/config-card",authenticate.authenticateAdmin, configCardController.getConfigCard); // Lấy cấu hình thẻ nạp
-router.put("/config-card", authenticate.authenticateAdmin ,configCardController.updateConfigCard); // Cập nhật cấu hình thẻ nạp
+router.get("/config-card", authenticate.authenticateAdmin, configCardController.getConfigCard); // Lấy cấu hình thẻ nạp
+router.put("/config-card", authenticate.authenticateAdmin, configCardController.updateConfigCard); // Cập nhật cấu hình thẻ nạp
 
 // Route để lấy số dư từ SMM
 router.get('/getbalance/:id', authenticate.authenticateAdmin, SmmController.getBalance);
 // Route để lấy danh sách dịch vụ từ SMM
 router.get('/getservices/:id', authenticate.authenticateAdmin, SmmController.getServices);
+router.get('/transactions', authenticate.authenticateUser, banking.getTransactions);
 
+router.get('/promotions', authenticate.authenticateUser, getPromotions);
+router.post('/promotions', authenticate.authenticateAdmin, createPromotion);
+// Route để sửa chương trình khuyến mãi
+router.put('/promotions/:id', authenticate.authenticateAdmin, updatePromotion);
+// Route để xóa chương trình khuyến mãi
+router.delete('/promotions/:id', authenticate.authenticateAdmin, deletePromotion);
 
 module.exports = router;

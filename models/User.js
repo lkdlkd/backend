@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   apiKey: { type: String }, // Không cần required, sẽ cập nhật sau khi tạo token
   capbac: { type: String, default: "Thành viên" },
   status: { type: String, enum: ['active', 'banned'], default: 'active' },
+  domain: { type: String, default: null },
+
 }, { timestamps: true }); // Tự động tạo createdAt và updatedAt
 
 // Pre-save hook: mã hóa mật khẩu và cập nhật userId nếu chưa có

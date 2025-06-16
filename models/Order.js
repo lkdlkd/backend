@@ -17,6 +17,8 @@ const orderSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }, // thời gian mua
   status: { type: String, default: 'Pending' },// trạng thái đơn hàng
   note: { type: String, default: '' },// ghi chú đơn hàng
+  domain: { type: String, default: null },
+
 });
 
 module.exports = mongoose.model('Order', orderSchema);

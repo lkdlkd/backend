@@ -1,4 +1,5 @@
 const Bank = require('../../models/Bankking');
+const TransactionBanking = require('../../models/TransactionBanking');
 
 // Tạo bank (chỉ admin)
 exports.createBank = async (req, res) => {
@@ -65,4 +66,49 @@ exports.getBank = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+exports.getTransactions = async (req, res) => {
+    try {
+        const user = req.user;
+        let transactions;
 
+        // Lấy các tham số truy vấn
+        const { page = 1, limit = 10, username, transactionID } = req.query;
+
+        if (user && user.role === "admin") {
+            // Admin: Hiển thị tất cả các giao dịch, có thể tìm kiếm và phân trang
+            const query = {};
+
+            // Tìm kiếm theo username
+            if (username) {
+                query.username = { $regex: username, $options: "i" }; // Tìm kiếm không phân biệt hoa thường
+            }
+
+            // Tìm kiếm theo transactionID
+            if (transactionID) {
+                query.transactionID = { $regex: transactionID, $options: "i" }; // Tìm kiếm không phân biệt hoa thường
+            }
+
+            // Lấy danh sách giao dịch theo điều kiện, phân trang và sắp xếp
+            transactions = await TransactionBanking.find(query)
+                .sort({ createdAt: -1 }) // Sắp xếp theo thời gian mới nhất
+                .skip((page - 1) * limit) // Bỏ qua các bản ghi trước đó
+                .limit(parseInt(limit)); // Giới hạn số lượng bản ghi trả về
+        } else {
+            // User thường: Chỉ hiển thị giao dịch của chính họ, có phân trang
+            transactions = await TransactionBanking.find({ username: user.username })
+                .select("username transactionDate note amount createdAt")
+                .sort({ createdAt: -1 }) // Sắp xếp theo thời gian mới nhất
+                .skip((page - 1) * limit) // Bỏ qua các bản ghi trước đó
+                .limit(parseInt(limit)); // Giới hạn số lượng bản ghi trả về
+        }
+
+        if ( transactions.length === 0) {
+            return res.status(404).json({ message: 'không có' });
+        }
+
+        // Trả về kết quả
+        res.json(transactions);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};

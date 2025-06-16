@@ -7,6 +7,7 @@ require('@/controllers/tool/checkOrderStatus');
 require('@/controllers/tool/RechargeCardController');
 require('@/controllers/tool/RestThang');
 require('@/controllers/tool/laytrangthaicard');
+require('@/controllers/tool/CheckBanKing');
 const cors = require('cors');
 const api = require('@/routes/api'); // Đường dẫn đúng đến file api.js
 const app = express();

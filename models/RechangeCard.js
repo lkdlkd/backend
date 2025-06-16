@@ -9,9 +9,11 @@ const TransactionSchema = new mongoose.Schema({
   real_amount: { type: Number, required: false, default: 0 },
   request_id: { type: Number, required: false },
   pin: { type: Number, required: false, min: 10000 },
-  status: { type: String, enum: ["pending", "success", "failed","warning"], default: "pending" },
+  status: { type: String, enum: ["pending", "success", "failed", "warning"], default: "pending" },
   tran_id: { type: Number, required: true },
   mota: { type: String, required: false },
+  domain: { type: String, default: null },
+
 }, { timestamps: true });
 
 // Pre-save hook để tự động tăng giá trị pin

@@ -9,6 +9,8 @@ const categorySchema = new mongoose.Schema({
   status: { type: Boolean, default: true }, // Trạng thái (1: hoạt động, 0: không hoạt động)
   created_at: { type: Date, default: Date.now }, // Ngày tạo
   updated_at: { type: Date, default: Date.now }, // Ngày cập nhật
+  domain: { type: String, default: null },
+
 });
 
 module.exports = mongoose.model("Category", categorySchema);
