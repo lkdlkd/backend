@@ -140,15 +140,16 @@ cron.schedule('*/30 * * * * *', async () => {
                             const taoluc = new Date();
                             const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
                             const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+
                             if (telegramBotToken && telegramChatId) {
                                 const telegramMessage =
                                     `📌 *Giao dịch thành công!*\n\n` +
+                                    `📌 *Trans ID !* ${trans.transactionID || "khong co"}\n` +
                                     `👤 *Khách hàng:* ${username}\n` +
                                     `💰 *Số tiền nạp:* ${amount}\n` +
                                     `🎁 *Khuyến mãi:* ${bonus}\n` +
                                     `🔹 *Tổng cộng:* ${totalAmount}\n` +
                                     `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
-
                                 try {
                                     await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
                                         chat_id: telegramChatId,
