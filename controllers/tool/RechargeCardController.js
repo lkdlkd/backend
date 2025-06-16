@@ -202,6 +202,11 @@ exports.rechargeCardStatus = async () => {
                         card.real_amount = 0;
                         card.mota = `Gửi thẻ thất bại: ${errorMessage}`;
                         await card.save();
+                    } else {
+                        card.status = "failed";
+                        card.real_amount = 0;
+                        card.mota = `Gửi thẻ thất bại: ${errorMessage}`;
+                        await card.save();
                     }
                 }
             } catch (err) {
