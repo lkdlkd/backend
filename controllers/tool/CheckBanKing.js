@@ -130,9 +130,11 @@ cron.schedule('*/30 * * * * *', async () => {
                             const tiencu = user.balance;
                             // Tính tiền thưởng khuyến mãi (nếu có)
                             const bonusResult = await calculateBonus(amount);
-                            bonus = bonusResult.bonus;
+                            bonus = bonusResult.bonus || 0; // Lấy tiền thưởng từ kết quả, nếu không có thì mặc định là 0
                             promo = bonusResult.promo; // Assign promo here
                             totalAmount = amount + bonus;
+                            console.log(bonusResult);
+console.log(`Tính toán thành công: Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
 
                             console.log(`Giao dịch: ${trans.transactionID}, Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
 
