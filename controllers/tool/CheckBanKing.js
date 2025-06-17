@@ -76,7 +76,7 @@ async function calculateBonus(amount) {
 
     console.log(`🎉 Chương trình khuyến mãi: ${promo.name} - Tỷ lệ: ${promo.percentBonus}%`);
     const bonus = Math.floor((amount * promo.percentBonus) / 100);
-    return bonus;
+    return { bonus, promo }; // Trả về tiền thưởng và tỷ lệ khuyến mãi
 }
 
 // Cron job mỗi phút
@@ -118,7 +118,7 @@ cron.schedule('*/30 * * * * *', async () => {
                     let user = null;
                     let bonus = 0;
                     let totalAmount = 0;
-
+                    let promo = null;
                     const amount = parseFloat(trans.amount); // Chuyển đổi amount từ chuỗi sang số
 
                     if (username) {
@@ -129,7 +129,9 @@ cron.schedule('*/30 * * * * *', async () => {
                         if (user) {
                             const tiencu = user.balance;
                             // Tính tiền thưởng khuyến mãi (nếu có)
-                            bonus = await calculateBonus(amount);
+                            const bonusResult = await calculateBonus(amount);
+                            bonus = bonusResult.bonus;
+                            promo = bonusResult.promo; // Assign promo here
                             totalAmount = amount + bonus;
 
                             console.log(`Giao dịch: ${trans.transactionID}, Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
@@ -153,8 +155,11 @@ cron.schedule('*/30 * * * * *', async () => {
                                 tienconlai: user.balance,
                                 createdAt: new Date(),
                                 mota: bonus > 0
-                                    ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount} và áp dụng khuyến mãi ${Math.floor((bonus / amount) * 100)}%`
+                                    ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount} và áp dụng khuyến mãi ${promo.percentBonus}%`
                                     : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount}`,
+                                // mota: bonus > 0
+                                //     ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount} và áp dụng khuyến mãi ${Math.floor((bonus / amount) * 100)}%`
+                                //     : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount}`,
                             });
                             await historyData.save();
                             await user.save();
