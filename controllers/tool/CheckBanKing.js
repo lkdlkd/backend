@@ -134,7 +134,7 @@ cron.schedule('*/30 * * * * *', async () => {
                             promo = bonusResult.promo; // Assign promo here
                             totalAmount = amount + bonus;
                             console.log(bonusResult);
-console.log(`Tính toán thành công: Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
+                            console.log(`Tính toán thành công: Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
 
                             console.log(`Giao dịch: ${trans.transactionID}, Amount: ${amount}, Bonus: ${bonus}, Total: ${totalAmount}`);
 
@@ -212,7 +212,7 @@ console.log(`Tính toán thành công: Amount: ${amount}, Bonus: ${bonus}, Total
                         status: transactionStatus, // Trạng thái giao dịch
                         note: user
                             ? (bonus > 0
-                                ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount} và áp dụng khuyến mãi ${Math.floor((bonus / amount) * 100)}%`
+                                ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount} và áp dụng khuyến mãi ${promo.percentBonus}%`
                                 : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount}`)
                             : `Hệ thống ${bank.bank_name} không thể cộng tiền vì không tìm thấy người dùng`,
                     });
