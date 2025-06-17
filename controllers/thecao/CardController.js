@@ -22,7 +22,7 @@ exports.createTransaction = async (req, res) => {
     // Lấy request_id tăng dần
     const lastTransaction = await Transaction.findOne().sort({ request_id: -1 });
 
-    let request_id = 1;
+    let request_id = 100;
     if (lastTransaction && typeof lastTransaction.request_id === "number") {
       request_id = lastTransaction.request_id + 1;
     }
@@ -32,6 +32,8 @@ exports.createTransaction = async (req, res) => {
       trans_id = lastTransaction.tran_id + 1;
     }
 
+    console.log("Request ID:", request_id);
+    console.log(trans_id);
     // Lấy cấu hình từ ConfigCard
     const configCard = await ConfigCard.findOne();
     if (!configCard) {
