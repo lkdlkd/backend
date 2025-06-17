@@ -24,6 +24,7 @@ exports.getConfigweb = async (req, res) => {
             logolienhe: "",
           },
         ],
+        cuphap: "naptien", // Thêm giá trị mặc định cho cuphap
       });
       await config.save();
     }
@@ -38,7 +39,7 @@ exports.getConfigweb = async (req, res) => {
 // Cập nhật cấu hình website
 exports.updateConfigweb = async (req, res) => {
   try {
-    const { tieude, title, logo, favicon, lienhe } = req.body;
+    const { tieude, title, logo, favicon, lienhe, cuphap } = req.body;
 
     // Tìm cấu hình hiện tại
     const config = await Configweb.findOne();
@@ -58,6 +59,7 @@ exports.updateConfigweb = async (req, res) => {
     config.logo = logo !== undefined ? logo : "";
     config.favicon = favicon !== undefined ? favicon : "";
     config.lienhe = lienhe !== undefined ? lienhe : [];
+    config.cuphap = cuphap !== undefined && cuphap.trim() !== "" ? cuphap : config.cuphap || "naptien"; // Kiểm tra giá trị trống cho cuphap
     
     await config.save();
 

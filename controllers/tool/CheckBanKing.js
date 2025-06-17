@@ -27,11 +27,29 @@ function getBankApiUrl(bank) {
 }
 
 // Hàm trích xuất username từ mô tả kiểu "naptien username"
-function extractUsername(description) {
-    const match = description.match(/naptien\s+([a-zA-Z0-9_.]+)/i);
-    return match ? match[1] : null;
-}
+// function extractUsername(description) {
+//     const match = description.match(/naptien\s+([a-zA-Z0-9_.]+)/i);
+//     return match ? match[1] : null;
+// }
+const Configweb = require('../../models/Configweb');
 
+// Hàm trích xuất username từ mô tả kiểu "cuphap username"
+async function extractUsername(description) {
+    try {
+        // Lấy giá trị cuphap từ Configweb
+        const config = await Configweb.findOne();
+        const cuphap = config?.cuphap || "naptien"; // Sử dụng "naptien" làm giá trị mặc định nếu không có
+console.log(`Cuphap: ${cuphap}`); // In ra giá trị cuphap để kiểm tra
+        console.log(`Mô tả: ${config}`); // In ra mô tả để kiểm tra
+        // Tạo regex động dựa trên giá trị cuphap
+        const regex = new RegExp(`${cuphap}\\s+([a-zA-Z0-9_.]+)`, "i");
+        const match = description.match(regex);
+        return match ? match[1] : null;
+    } catch (error) {
+        console.error("Lỗi khi lấy cuphap từ Configweb:", error.message);
+        return null;
+    }
+}
 // Hàm tính tiền thưởng khuyến mãi (nếu có)
 // Hàm tính tiền thưởng khuyến mãi (nếu có)
 async function calculateBonus(amount) {
@@ -92,7 +110,7 @@ cron.schedule('*/30 * * * * *', async () => {
                         continue; // Bỏ qua nếu giao dịch đã được xử lý
                     }
 
-                    const username = extractUsername(trans.description);
+                    const username = await extractUsername(trans.description);
                     let user = null;
                     let bonus = 0;
                     let totalAmount = 0;
