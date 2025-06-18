@@ -65,7 +65,7 @@ exports.getServer = async (req, res) => {
 
       const totalServices = await Service.countDocuments(filter);
       const services = await Service.find(filter)
-        .populate("category", "name") // Lấy thông tin tên của Category
+        .populate("category", "name path") // Lấy thông tin tên của Category
         .skip(skip)
         .limit(limit);
 
@@ -79,6 +79,7 @@ exports.getServer = async (req, res) => {
         Magoi: service.Magoi,
         type: service.type, // Loại dịch vụ
         name: service.name,
+        path: service.category.path || "", // Lấy đường dẫn của Category
         rate: service.rate,
         maychu: service.maychu,
         min: service.min,
@@ -110,6 +111,7 @@ exports.getServer = async (req, res) => {
 
       const formattedServices = services.map(service => ({
         description: service.description,
+        path: service.category.path || "", // Lấy đường dẫn của Category
         Magoi: service.Magoi,
         id: service.id,
         maychu: service.maychu,
