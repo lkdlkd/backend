@@ -205,7 +205,7 @@ exports.AddOrder = async (req, res) => {
             `🔹 *Dịch vụ:* ${serviceFromDb.name}\n` +
             `🔗 *Link:* ${link}\n` +
             `📌 *Số lượng:* ${qty}\n` +
-            `💰 *TIền cũ:* ${(user.balance + totalCost).toLocaleString()} VNĐ\n` +
+            `💰 *Tiền cũ:* ${(user.balance + totalCost).toLocaleString()} VNĐ\n` +
             `💰 *Tổng tiền:* ${totalCost.toLocaleString()} VNĐ\n` +
             `💰 *TIền còn lại:* ${newBalance.toLocaleString()} VNĐ\n` +
             `🆔 *Mã đơn:* ${newMadon}\n` +

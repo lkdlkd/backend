@@ -106,8 +106,7 @@ cron.schedule('*/30 * * * * *', async () => {
                 transactions = transactions.slice(0, 20);
 
                 for (const trans of transactions) {
-                    if (trans.type !== 'IN') continue; // Chỉ xử lý giao dịch nạp tiền
-
+                    // Xử lý mọi giao dịch, không chỉ IN
                     const exists = await Transaction.findOne({ transactionID: trans.transactionID });
                     if (exists) {
                         console.log(`⚠️ Giao dịch đã tồn tại: ${trans.transactionID}`);
@@ -121,7 +120,7 @@ cron.schedule('*/30 * * * * *', async () => {
                     let promo = null;
                     const amount = parseFloat(trans.amount); // Chuyển đổi amount từ chuỗi sang số
 
-                    if (username) {
+                    if (trans.type === 'IN' && username) {
                         // Tìm user theo username
                         user = await User.findOne({ username });
 
@@ -143,7 +142,6 @@ cron.schedule('*/30 * * * * *', async () => {
 
                             // Cập nhật tổng số tiền nạp
                             user.tongnap = (user.tongnap || 0) + totalAmount;
-
                             user.tongnapthang = (user.tongnapthang || 0) + totalAmount;
 
                             // Lưu lịch sử giao dịch
@@ -159,9 +157,6 @@ cron.schedule('*/30 * * * * *', async () => {
                                 mota: bonus > 0
                                     ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount} và áp dụng khuyến mãi ${promo.percentBonus}%`
                                     : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount}`,
-                                // mota: bonus > 0
-                                //     ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount} và áp dụng khuyến mãi ${Math.floor((bonus / amount) * 100)}%`
-                                //     : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${totalAmount}`,
                             });
                             await historyData.save();
                             await user.save();
@@ -172,8 +167,8 @@ cron.schedule('*/30 * * * * *', async () => {
 
                             if (telegramBotToken && telegramChatId) {
                                 const telegramMessage =
-                                    `📌 *Giao dịch thành công!*\n\n` +
-                                    `📌 *Trans ID !* ${trans.transactionID || "khong co"}\n` +
+                                    `📌 *NẠP TIỀN THÀNH CÔNG!*\n\n` +
+                                    `📌 *Trans_id : * ${trans.transactionID || "khong co"}\n` +
                                     `👤 *Khách hàng:* ${username}\n` +
                                     `💰 *Số tiền nạp:* ${amount}\n` +
                                     `🎁 *Khuyến mãi:* ${bonus}\n` +
@@ -193,12 +188,15 @@ cron.schedule('*/30 * * * * *', async () => {
                         } else {
                             console.log(`⚠️ Không tìm thấy user: ${username}`);
                         }
-                    } else {
-                        console.log(`⚠️ Không tìm thấy username trong mô tả: ${trans.description}`);
+                    } else if (trans.type !== 'IN') {
+                        // Nếu là OUT hoặc loại khác, chỉ lưu giao dịch, không cộng tiền
+                        if (!username) {
+                            console.log(`⚠️ Không tìm thấy username trong mô tả: ${trans.description}`);
+                        }
                     }
                     datetime = new Date().toISOString(); // Lấy thời gian hiện tại
                     // Xác định trạng thái giao dịch
-                    const transactionStatus = user ? 'COMPLETED' : 'FAILED';
+                    const transactionStatus = (trans.type === 'IN' && user) ? 'COMPLETED' : 'FAILED';
 
                     // Lưu giao dịch vào bảng Transaction
                     await Transaction.create({
@@ -210,14 +208,14 @@ cron.schedule('*/30 * * * * *', async () => {
                         transactionDate: datetime,
                         type: trans.type,
                         status: transactionStatus, // Trạng thái giao dịch
-                        note: user
+                        note: (trans.type === 'IN' && user)
                             ? (bonus > 0
-                                ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount} và áp dụng khuyến mãi ${promo.percentBonus}%`
+                                ? `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount} và áp dụng khuyến mãi ${promo?.percentBonus || 0}%`
                                 : `Hệ thống ${bank.bank_name} tự động cộng thành công số tiền ${trans.amount}`)
-                            : `Hệ thống ${bank.bank_name} không thể cộng tiền vì không tìm thấy người dùng`,
+                            : `Hệ thống ${bank.bank_name} không thể cộng tiền vì không tìm thấy người dùng hoặc không phải giao dịch nạp tiền`,
                     });
 
-                    if (user) {
+                    if (user && trans.type === 'IN') {
                         if (bonus > 0) {
                             console.log(`🎁 ${bank.bank_name.toUpperCase()}: +${amount} (+${bonus} KM) => ${username}`);
                         } else {

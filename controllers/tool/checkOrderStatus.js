@@ -3,6 +3,9 @@ const Order = require('../../models/Order');
 const Service = require('../../models/server'); // Đảm bảo đúng tên file model
 const SmmSv = require('../../models/SmmSv');
 const SmmApiService = require('../Smm/smmServices');
+const User = require('../../models/User'); // Thêm dòng này ở đầu file để import model User
+const HistoryUser = require('../../models/History');
+const axios = require('axios');
 
 function mapStatus(apiStatus) {
   switch (apiStatus) {
@@ -12,6 +15,8 @@ function mapStatus(apiStatus) {
       return "Completed";
     case "In progress":
       return "In progress";
+    case "Partial":
+      return "Partial";
     case "Canceled":
       return "Canceled";
     default:
@@ -82,7 +87,90 @@ async function checkOrderStatus() {
           if (mappedStatus !== null) order.status = mappedStatus;
           if (statusObj.start_count !== undefined) order.start = statusObj.start_count;
           if (statusObj.remains !== undefined) order.dachay = order.quantity - statusObj.remains;
-
+          const user = await User.findOne({ username: order.username });
+          const tiencu = user.balance || 0;
+          if (mappedStatus === 'Partial') {
+            if (user) {
+              const soTienHoan = ((statusObj.remains || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+              user.balance = (user.balance || 0) + soTienHoan;
+              await user.save();
+              const historyData = new HistoryUser({
+                username: order.username,
+                madon: "null",
+                hanhdong: "Hoàn tiền",
+                link: "",
+                tienhientai: tiencu,
+                tongtien: soTienHoan,
+                tienconlai: user.balance,
+                createdAt: new Date(),
+                mota: `Hệ thống hoàn cho bạn ${soTienHoan} dịch vụ tương đương với ${statusObj.remains} cho uid ${order.link} và 1000 phí dịch vụ`,
+              });
+              const taoluc = new Date();
+              const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+              const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+              if (telegramBotToken && telegramChatId) {
+                const telegramMessage =
+                  `📌 *THÔNG BÁO HOÀN TIỀN!*\n\n` +
+                  `👤 *Khách hàng:* ${order.username}\n` +
+                  `💰 *Số tiền hoàn:* ${soTienHoan}\n` +
+                  `🔹 *Tướng ứng số lượng:* ${statusObj.remains} Rate : ${order.rate}\n` +
+                  `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
+                try {
+                  await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                    chat_id: telegramChatId,
+                    text: telegramMessage,
+                    parse_mode: "Markdown",
+                  });
+                  console.log("Thông báo Telegram đã được gửi.");
+                } catch (telegramError) {
+                  console.error("Lỗi gửi thông báo Telegram:", telegramError.message);
+                }
+              }
+              await historyData.save();
+              console.log(`Đã hoàn tiền cho user ${user.username} số tiền ${soTienHoan} do đơn ${order.Madon} bị hủy hoặc chạy thiếu.`);
+            }
+          }
+          if (mappedStatus === 'Canceled') {
+            if (user) {
+              const soTienHoan = ((order.quantity || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+              user.balance = (user.balance || 0) + soTienHoan;
+              await user.save();
+              const historyData = new HistoryUser({
+                username: order.username,
+                madon: "null",
+                hanhdong: "Hoàn tiền",
+                link: "",
+                tienhientai: tiencu,
+                tongtien: soTienHoan,
+                tienconlai: user.balance,
+                createdAt: new Date(),
+                mota: `Hệ thống hoàn cho bạn ${soTienHoan} dịch vụ tương đương với ${order.quantity} cho uid ${order.link} và 1000 phí dịch vụ`,
+              });
+              const taoluc = new Date();
+              const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+              const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+              if (telegramBotToken && telegramChatId) {
+                const telegramMessage =
+                  `📌 *THÔNG BÁO HOÀN TIỀN!*\n\n` +
+                  `👤 *Khách hàng:* ${order.username}\n` +
+                  `💰 *Số tiền hoàn:* ${soTienHoan}\n` +
+                  `🔹 *Tướng ứng số lượng:* ${order.quantity} Rate : ${order.rate}\n` +
+                  `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
+                try {
+                  await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                    chat_id: telegramChatId,
+                    text: telegramMessage,
+                    parse_mode: "Markdown",
+                  });
+                  console.log("Thông báo Telegram đã được gửi.");
+                } catch (telegramError) {
+                  console.error("Lỗi gửi thông báo Telegram:", telegramError.message);
+                }
+              }
+              await historyData.save();
+              console.log(`Đã hoàn tiền cho user ${user._id} số tiền ${soTienHoan} do đơn ${order.Madon} bị hủy hoặc chạy thiếu.`);
+            }
+          }
           await order.save();
           console.log(`Đã cập nhật đơn ${order.Madon}: status = ${order.status}, dachay = ${order.dachay}`);
         } catch (apiError) {
@@ -104,6 +192,93 @@ async function checkOrderStatus() {
                 if (mappedStatus !== null) order.status = mappedStatus;
                 if (statusObj.start_count !== undefined) order.start = statusObj.start_count;
                 if (statusObj.remains !== undefined) order.dachay = order.quantity - statusObj.remains;
+                // Nếu trạng thái là Canceled thì hoàn tiền
+                const user = await User.findOne({ username: order.username });
+                const tiencu = user.balance || 0;
+                // Nếu trạng thái là Canceled hoặc Partial thì hoàn tiền phần còn lại
+                if (mappedStatus === 'Partial') {
+                  if (user) {
+                    const soTienHoan = ((statusObj.remains || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+                    user.balance = (user.balance || 0) + soTienHoan;
+                    await user.save();
+                    const historyData = new HistoryUser({
+                      username: order.username,
+                      madon: "null",
+                      hanhdong: "Hoàn tiền",
+                      link: "",
+                      tienhientai: tiencu,
+                      tongtien: soTienHoan,
+                      tienconlai: user.balance,
+                      createdAt: new Date(),
+                      mota: `Hệ thống hoàn cho bạn ${soTienHoan} dịch vụ tương đương với ${statusObj.remains} cho uid ${order.link} và 1000 phí dịch vụ`,
+                    });
+                    const taoluc = new Date();
+                    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+                    const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+                    if (telegramBotToken && telegramChatId) {
+                      const telegramMessage =
+                        `📌 *THÔNG BÁO HOÀN TIỀN!*\n\n` +
+                        `👤 *Khách hàng:* ${order.username}\n` +
+                        `💰 *Số tiền hoàn:* ${soTienHoan}\n` +
+                        `🔹 *Tướng ứng số lượng:* ${statusObj.remains} Rate : ${order.rate}\n` +
+                        `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
+                      try {
+                        await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                          chat_id: telegramChatId,
+                          text: telegramMessage,
+                          parse_mode: "Markdown",
+                        });
+                        console.log("Thông báo Telegram đã được gửi.");
+                      } catch (telegramError) {
+                        console.error("Lỗi gửi thông báo Telegram:", telegramError.message);
+                      }
+                    }
+                    await historyData.save();
+                    console.log(`Đã hoàn tiền cho user ${user.username} số tiền ${soTienHoan} do đơn ${order.Madon} bị hủy hoặc chạy thiếu.`);
+                  }
+                }
+                if (mappedStatus === 'Canceled') {
+                  if (user) {
+                    const soTienHoan = ((order.quantity || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+                    user.balance = (user.balance || 0) + soTienHoan;
+                    await user.save();
+                    const historyData = new HistoryUser({
+                      username: order.username,
+                      madon: "null",
+                      hanhdong: "Hoàn tiền",
+                      link: "",
+                      tienhientai: tiencu,
+                      tongtien: soTienHoan,
+                      tienconlai: user.balance,
+                      createdAt: new Date(),
+                      mota: `Hệ thống hoàn cho bạn ${soTienHoan} dịch vụ tương đương với ${order.quantity} cho uid ${order.link} và 1000 phí dịch vụ`,
+                    });
+                    const taoluc = new Date();
+                    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+                    const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+                    if (telegramBotToken && telegramChatId) {
+                      const telegramMessage =
+                        `📌 *THÔNG BÁO HOÀN TIỀN!*\n\n` +
+                        `👤 *Khách hàng:* ${order.username}\n` +
+                        `💰 *Số tiền hoàn:* ${soTienHoan}\n` +
+                        `🔹 *Tướng ứng số lượng:* ${order.quantity} Rate : ${order.rate}\n` +
+                        `⏰ *Thời gian:* ${taoluc.toLocaleString()}\n`;
+                      try {
+                        await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                          chat_id: telegramChatId,
+                          text: telegramMessage,
+                          parse_mode: "Markdown",
+                        });
+                        console.log("Thông báo Telegram đã được gửi.");
+                      } catch (telegramError) {
+                        console.error("Lỗi gửi thông báo Telegram:", telegramError.message);
+                      }
+                    }
+                    await historyData.save();
+                    console.log(`Đã hoàn tiền cho user ${user._id} số tiền ${soTienHoan} do đơn ${order.Madon} bị hủy hoặc chạy thiếu.`);
+                  }
+                }
+
                 await order.save();
                 console.log(`Đã cập nhật đơn ${order.Madon}: status = ${order.status}, dachay = ${order.dachay}`);
               } else {
@@ -122,7 +297,7 @@ async function checkOrderStatus() {
 }
 
 // Đặt lịch chạy cron job, ví dụ: chạy mỗi 1 phút
-cron.schedule('*/3 * * * *', () => {
+cron.schedule('*/1 * * * *', () => {
   console.log("Cron job: Bắt đầu kiểm tra trạng thái đơn hàng");
   checkOrderStatus();
 });

@@ -116,9 +116,10 @@ exports.rechargeCardStatus = async () => {
                         const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
                         const telegramChatId = process.env.TELEGRAM_CHAT_ID;
                         if (telegramBotToken && telegramChatId) {
-                            const telegramMessage = `📌 *Cộng tiền!*\n\n` +
+                            const telegramMessage =
+                                `📌 *NẠP TIỀN!*\n\n` +
                                 `👤 *Khách hàng:* ${card.username}\n` +
-                                `👤 *Cộng tiền:*  nạp thẻ thành công số tiền  ${chietkhau}.\n` +
+                                `👤 *Cộng tiền:* nạp thẻ thành công số tiền ${chietkhau}.\n` +
                                 `🔹 *Tạo lúc:* ${new Date().toLocaleString()}\n`;
                             try {
                                 await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
