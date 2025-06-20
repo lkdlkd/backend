@@ -9,6 +9,8 @@ const axios = require('axios');
 
 function mapStatus(apiStatus) {
   switch (apiStatus) {
+    case "Pending":
+      return "Pending";
     case "Processing":
       return "Processing";
     case "Completed":
@@ -86,12 +88,20 @@ async function checkOrderStatus() {
           const mappedStatus = mapStatus(statusObj.status);
           if (mappedStatus !== null) order.status = mappedStatus;
           if (statusObj.start_count !== undefined) order.start = statusObj.start_count;
-          if (statusObj.remains !== undefined) order.dachay = order.quantity - statusObj.remains;
+          if (
+            ['Pending', 'In progress', 'Processing'].includes(mappedStatus) &&
+            Number(statusObj.remains) === 0
+          ) {
+            order.dachay = 0;
+          } else if (statusObj.remains !== undefined) {
+            order.dachay = order.quantity - Number(statusObj.remains);
+          }
           const user = await User.findOne({ username: order.username });
           const tiencu = user.balance || 0;
           if (mappedStatus === 'Partial') {
             if (user) {
               const soTienHoan = ((statusObj.remains || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+              if ((soTienHoan) < 0) return;
               user.balance = (user.balance || 0) + soTienHoan;
               await user.save();
               const historyData = new HistoryUser({
@@ -133,6 +143,7 @@ async function checkOrderStatus() {
           if (mappedStatus === 'Canceled') {
             if (user) {
               const soTienHoan = ((order.quantity || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+              if ((soTienHoan) < 0) return;
               user.balance = (user.balance || 0) + soTienHoan;
               await user.save();
               const historyData = new HistoryUser({
@@ -191,7 +202,14 @@ async function checkOrderStatus() {
                 const mappedStatus = mapStatus(statusObj.status);
                 if (mappedStatus !== null) order.status = mappedStatus;
                 if (statusObj.start_count !== undefined) order.start = statusObj.start_count;
-                if (statusObj.remains !== undefined) order.dachay = order.quantity - statusObj.remains;
+                if (
+                  ['Pending', 'In progress', 'Processing'].includes(mappedStatus) &&
+                  Number(statusObj.remains) === 0
+                ) {
+                  order.dachay = 0;
+                } else if (statusObj.remains !== undefined) {
+                  order.dachay = order.quantity - Number(statusObj.remains);
+                }
                 // Nếu trạng thái là Canceled thì hoàn tiền
                 const user = await User.findOne({ username: order.username });
                 const tiencu = user.balance || 0;
@@ -199,6 +217,7 @@ async function checkOrderStatus() {
                 if (mappedStatus === 'Partial') {
                   if (user) {
                     const soTienHoan = ((statusObj.remains || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+                    if ((soTienHoan) < 0) return;
                     user.balance = (user.balance || 0) + soTienHoan;
                     await user.save();
                     const historyData = new HistoryUser({
@@ -240,6 +259,7 @@ async function checkOrderStatus() {
                 if (mappedStatus === 'Canceled') {
                   if (user) {
                     const soTienHoan = ((order.quantity || 0) * order.rate) - 1000; // Giả sử 1000 là phí dịch vụ
+                    if ((soTienHoan) < 0) return;
                     user.balance = (user.balance || 0) + soTienHoan;
                     await user.save();
                     const historyData = new HistoryUser({
