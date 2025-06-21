@@ -107,7 +107,7 @@ exports.getServer = async (req, res) => {
       });
     } else {
       // User thường: chỉ lấy các trường cần thiết
-      const services = await Service.find(filter).populate("category", "name");
+      const services = await Service.find(filter).populate("category", "name path");
 
       const formattedServices = services.map(service => ({
         description: service.description,

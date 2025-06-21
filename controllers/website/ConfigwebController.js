@@ -18,11 +18,6 @@ exports.getConfigweb = async (req, res) => {
             value: "",
             logolienhe: "",
           },
-          {
-            type: "",
-            value: "",
-            logolienhe: "",
-          },
         ],
         cuphap: "naptien", // Thêm giá trị mặc định cho cuphap
       });
