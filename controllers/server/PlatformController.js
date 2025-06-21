@@ -59,6 +59,18 @@ exports.deletePlatform = async (req, res) => {
 
     const { id } = req.params; // Sử dụng _id thay vì id
 
+    // Kiểm tra xem có category nào đang dùng platform này không
+    const Category = require("../../models/Category");
+    console.error("Checking for categories using platform with id:", id);
+    const categoryUsingPlatform = await Category.findOne({ platforms_id: id });
+    console.error("Category using platform:", categoryUsingPlatform);
+    if (categoryUsingPlatform) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể xóa vì vẫn còn category đang sử dụng platform này!",
+      });
+    }
+
     const deletedPlatform = await Platform.findByIdAndDelete(id); // Tìm và xóa theo _id
 
     if (!deletedPlatform) {

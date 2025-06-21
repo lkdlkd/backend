@@ -63,8 +63,6 @@ exports.updateCategory = async (req, res) => {
     res.status(400).json({ success: false, message: "Lỗi khi cập nhật Category", error: error.message });
   }
 };
-
-// Xóa category (chỉ admin)
 exports.deleteCategory = async (req, res) => {
   try {
     const user = req.user;
@@ -80,13 +78,22 @@ exports.deleteCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: "Category không tồn tại" });
     }
 
+    // Kiểm tra xem có server/service nào đang dùng category này không
+    const Service = require("../../models/server");
+    const serviceUsingCategory = await Service.findOne({ category: id });
+    if (serviceUsingCategory) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể xóa vì vẫn còn dịch vụ/server đang sử dụng category này!",
+      });
+    }
+
     await Category.findByIdAndDelete(id);
     res.status(200).json({ success: true, message: "Category được xóa thành công" });
   } catch (error) {
     res.status(400).json({ success: false, message: "Lỗi khi xóa Category", error: error.message });
   }
 };
-
 // Lấy danh sách category (không cần admin)
 exports.getCategories = async (req, res) => {
   try {
