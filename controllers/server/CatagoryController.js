@@ -9,7 +9,7 @@ exports.addCategory = async (req, res) => {
       return res.status(403).json({ success: false, message: "Chỉ admin mới có quyền thực hiện thao tác này" });
     }
 
-    const { platforms_id, name, path, notes, modal_show, status } = req.body;
+    const { platforms_id, name, path, notes, modal_show, status, thutu } = req.body; // Thêm thutu
 
     // Kiểm tra xem Platform có tồn tại không
     const platform = await Platform.findById(platforms_id);
@@ -25,6 +25,7 @@ exports.addCategory = async (req, res) => {
       notes,
       modal_show,
       status,
+      thutu, // Thêm thutu
     });
 
     await newCategory.save();
@@ -43,7 +44,7 @@ exports.updateCategory = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { platforms_id, name, path, notes, modal_show, status } = req.body;
+    const { platforms_id, name, path, notes, modal_show, status, thutu } = req.body; // Thêm thutu
 
     // Kiểm tra xem Category có tồn tại không
     const category = await Category.findById(id);
@@ -54,7 +55,7 @@ exports.updateCategory = async (req, res) => {
     // Cập nhật category
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
-      { platforms_id, name, path, notes, modal_show, status },
+      { platforms_id, name, path, notes, modal_show, status, thutu }, // Thêm thutu
       { new: true }
     );
 
@@ -97,15 +98,30 @@ exports.deleteCategory = async (req, res) => {
 // Lấy danh sách category (không cần admin)
 exports.getCategories = async (req, res) => {
   try {
+    // Lấy tất cả categories, populate platforms_id
     const categories = await Category.find()
       .populate({
         path: "platforms_id",
         select: "name logo",
-        options: { sort: { createdAt: 1 } }, // Sắp xếp platforms_id theo thứ tự thêm trước
+        options: { sort: { createdAt: 1 } },
       })
-      .sort({ createdAt: 1 }); // Sắp xếp categories theo thứ tự thêm trước
+      .sort({ thutu: 1, createdAt: 1 });
 
-    res.status(200).json({ success: true, data: categories });
+    // Lấy tất cả platforms
+    const platforms = await Platform.find().sort({ createdAt: 1 });
+
+    // Gắn categories vào từng platform
+    const platformsWithCategories = platforms.map((platform) => {
+      const platformCategories = categories.filter(
+        (cat) => cat.platforms_id && cat.platforms_id._id.toString() === platform._id.toString()
+      );
+      return {
+        ...platform.toObject(),
+        categories: platformCategories,
+      };
+    });
+
+    res.status(200).json({ success: true, platforms: platformsWithCategories });
   } catch (error) {
     res.status(500).json({ success: false, message: "Lỗi server", error: error.message });
   }
