@@ -116,7 +116,7 @@ async function updateTypeToPlatformId() {
 // Cronjob: Kiểm tra giá dịch vụ mỗi 30 giây
 setInterval(() => {
   console.log('Cron job: Kiểm tra giá dịch vụ mỗi 30 giây');
-  // updateServicePrices();
-  updateTypeToPlatformId();
+  updateServicePrices();
+  // updateTypeToPlatformId();
 
 }, 30000); // 30,000 milliseconds = 30 seconds
