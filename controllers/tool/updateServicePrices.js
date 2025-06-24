@@ -91,9 +91,32 @@ async function updateServicePrices() {
     console.error('Lỗi khi lấy danh sách dịch vụ:', error.message);
   }
 }
+const Platform = require('../../models/platform');
+
+async function updateTypeToPlatformId() {
+  const services = await Service.find({});
+  console.log(`Đang cập nhật type cho ${services} dịch vụ...`);
+  for (const service of services) {
+    console.log('type string:', service.type);
+
+    if (typeof service.type === 'string') {
+
+      const platform = await Platform.findOne({ name: service.type });
+      if (platform) {
+        service.type = platform._id;
+        console.log(`Cập nhật type cho dịch vụ ${service.name} thành ${platform._id}`);
+        console.log(service)
+        await service.save();
+      }
+    }
+  }
+  console.log('Cập nhật hoàn tất!');
+}
 
 // Cronjob: Kiểm tra giá dịch vụ mỗi 30 giây
 setInterval(() => {
   console.log('Cron job: Kiểm tra giá dịch vụ mỗi 30 giây');
-  updateServicePrices();
-}, 300000); // 30,000 milliseconds = 30 seconds
+  // updateServicePrices();
+  updateTypeToPlatformId();
+
+}, 30000); // 30,000 milliseconds = 30 seconds

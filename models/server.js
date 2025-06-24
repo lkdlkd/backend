@@ -7,7 +7,7 @@ const serviceSchema = new mongoose.Schema({
   originalRate: { type: Number, required: true },//giá lấy bên thứ 3
   // loai dv 
   category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true }, // Tham chiếu đến Category
-  type : { type: String, required: true }, // Loại dịch vụ (ví dụ: "tiktok", "facebook", "youtube", v.v.)
+  type: { type: mongoose.Schema.Types.ObjectId, ref: "Platform", required: true },
   description: { type: String, required: false },//mô tả sv
   //server
   Magoi: { type: String, required: true },// ma goi moi khi thêm

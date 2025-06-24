@@ -17,7 +17,7 @@ exports.addServer = async (req, res) => {
       { $inc: { value: 1 } },
       { new: true, upsert: true } // Tạo mới nếu chưa tồn tại
     );
-
+console.log(req.body);
     // Gán giá trị Magoi tự động tăng
     const newService = new Service({
       ...req.body,
@@ -66,20 +66,21 @@ exports.getServer = async (req, res) => {
       const totalServices = await Service.countDocuments(filter);
       const services = await Service.find(filter)
         .populate("category", "name path") // Lấy thông tin tên của Category
+        .populate("type", "name logo") // Lấy thông tin của Platform
         .skip(skip)
         .limit(limit);
 
       const formattedServices = services.map(service => ({
-        _id: service._id, // Sử dụng _id để lấy ID của dịch vụ
+        _id: service._id,
         DomainSmm: service.DomainSmm,
         serviceName: service.serviceName,
         originalRate: service.originalRate,
-        category: service.category ? service.category.name : "Không xác định", // Kiểm tra nếu category tồn tại
+        category: service.category ? service.category.name : "Không xác định",
         description: service.description,
         Magoi: service.Magoi,
-        type: service.type, // Loại dịch vụ
+        type: service.type ? service.type.name : "không xác định", // Trả về tên của Platform
         name: service.name,
-        path: service.category.path || "", // Lấy đường dẫn của Category
+        path: service.category.path || "",
         rate: service.rate,
         maychu: service.maychu,
         min: service.min,
@@ -177,47 +178,39 @@ exports.deleteServer = async (req, res) => {
 
 exports.getServerByTypeAndPath = async (req, res) => {
   try {
-    const { type, path } = req.query;
+    const { path } = req.query;
 
-    // Tạo bộ lọc tìm kiếm
-    let filter = {};
-
-    if (type) {
-      filter.type = { $regex: type, $options: "i" }; // Không phân biệt chữ hoa/thường
+    // Nếu không có path thì trả về lỗi
+    if (!path) {
+      return res.status(400).json({ success: false, message: "Thiếu tham số path" });
     }
 
-    if (path) {
-      filter["category.path"] = { $regex: path, $options: "i" }; // Không phân biệt chữ hoa/thường
-    }
-
-    // Lấy danh sách dịch vụ theo bộ lọc
-    // const services = await Service.find(filter).populate("category", "name path");
+    // Lấy danh sách dịch vụ theo path category
     const services = await Service.aggregate([
       {
         $lookup: {
-          from: "categories", // Tên collection Category
+          from: "categories",
           localField: "category",
           foreignField: "_id",
           as: "category"
         }
       },
-      {
-        $unwind: "$category"
-      },
+      { $unwind: "$category" },
       {
         $match: {
-          type: { $regex: type, $options: "i" },
           "category.path": { $regex: path, $options: "i" }
         }
       }
     ]);
-    // Lấy thông tin `note` và `modal_show` duy nhất từ `category`
+
+    // Lấy thông tin note và modal_show duy nhất từ category
     const uniqueNotes = services.length > 0
       ? {
         note: services[0].category.notes || "",
         modal_show: services[0].category.modal_show || "",
       }
       : { note: "", modal_show: "" };
+
     // Định dạng lại dữ liệu trả về
     const formattedServices = services.map(service => ({
       description: service.description,
@@ -228,13 +221,13 @@ exports.getServerByTypeAndPath = async (req, res) => {
       rate: service.rate,
       min: service.min,
       max: service.max,
-      getid: service.getid,//chức năng get id sau khi nhập link mua
-      comment: service.comment,//chức năng get id sau khi nhập link mua
-      reaction: service.reaction,//chức năng get id sau khi nhập link mua
-      matlive: service.matlive,//chức năng get id sau khi nhập link mua
+      getid: service.getid,
+      comment: service.comment,
+      reaction: service.reaction,
+      matlive: service.matlive,
       type: service.type,
-      category: service.category.name, // Lấy tên của Category
-      path: service.category.path, // Lấy đường dẫn của Category
+      category: service.category.name,
+      path: service.category.path,
       isActive: service.isActive,
     }));
 
@@ -244,7 +237,7 @@ exports.getServerByTypeAndPath = async (req, res) => {
       data: formattedServices,
     });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách dịch vụ theo type và path:", error);
+    console.error("Lỗi khi lấy danh sách dịch vụ theo path:", error);
     return res.status(500).json({
       success: false,
       message: "Lỗi khi lấy danh sách dịch vụ",
