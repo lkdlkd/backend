@@ -113,7 +113,8 @@ cron.schedule('*/30 * * * * *', async () => {
                         continue; // Bỏ qua nếu giao dịch đã được xử lý
                     }
 
-                    const username = await extractUsername(trans.description);
+                    const usernameRaw = await extractUsername(trans.description);
+                    const username = usernameRaw ? usernameRaw.toLowerCase() : null;
                     let user = null;
                     let bonus = 0;
                     let totalAmount = 0;
