@@ -36,15 +36,20 @@ async function updateServicePrices() {
           const apiService = apiResponse.data.find(
             (s) => Number(s.service) === Number(serviceItem.serviceId)
           );
+
           if (!apiService) {
             console.warn(`Không tìm thấy dịch vụ ${serviceItem.serviceId} trong API cho ${serviceItem.name}`);
+            serviceItem.isActive = false;
+            await serviceItem.save();
             return;
           }
 
           // Lấy giá từ API và so sánh với giá trong CSDL
           const apiRate = apiService.rate * smmSvConfig.tigia;
           const dbRate = serviceItem.rate;
-
+          serviceItem.isActive = true;
+          serviceItem.originalRate = apiRate;
+          await serviceItem.save();
           console.log(
             `Dịch vụ ${serviceItem.name} - id ${serviceItem.serviceId} - Giá DB: ${dbRate}, Giá API: ${apiRate}`
           );
