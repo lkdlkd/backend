@@ -136,7 +136,9 @@ exports.AddOrder = async (req, res) => {
         if (user.balance < totalCost) {
             throw new Error('Số dư không đủ để thực hiện giao dịch');
         }
-
+        if (serviceFromDb.isActive === false) {
+            throw new Error('Dịch vụ bảo trì, vui lòng liên hệ admin');
+        }
         // --- Bước 4: Gửi yêu cầu mua dịch vụ qua API bên thứ 3 ---
         const purchasePayload = {
             link,
