@@ -317,7 +317,7 @@ async function checkOrderStatus() {
 }
 
 // Đặt lịch chạy cron job, ví dụ: chạy mỗi 1 phút
-cron.schedule('*/1 * * * *', () => {
+cron.schedule('*/3 * * * *', () => {
   console.log("Cron job: Bắt đầu kiểm tra trạng thái đơn hàng");
   checkOrderStatus();
 });

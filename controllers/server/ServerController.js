@@ -17,10 +17,14 @@ exports.addServer = async (req, res) => {
       { $inc: { value: 1 } },
       { new: true, upsert: true } // Tạo mới nếu chưa tồn tại
     );
-console.log(req.body);
     // Gán giá trị Magoi tự động tăng
+    let rate = req.body.rate;
+    if (typeof rate === 'number') {
+      rate = Math.round(rate * 10000) / 10000;
+    }
     const newService = new Service({
       ...req.body,
+      rate,
       Magoi: counter.value, // Gán giá trị Magoi từ bộ đếm
     });
 
@@ -148,7 +152,11 @@ exports.updateServer = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Chỉ admin mới có quyền sử dụng chức năng này' });
     }
 
-    const updatedService = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    let updateData = { ...req.body };
+    if (typeof updateData.rate === 'number') {
+      updateData.rate = Math.round(updateData.rate * 10000) / 10000;
+    }
+    const updatedService = await Service.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!updatedService) {
       return res.status(404).json({ success: false, message: 'Dịch vụ không tồn tại' });
     }

@@ -56,7 +56,8 @@ async function updateServicePrices() {
 
           // Nếu giá trong CSDL thấp hơn giá API thì cập nhật
           if (dbRate < apiRate) {
-            const newRate = apiRate * 1.1; // cập nhật với 10% tăng thêm
+            let newRate = apiRate * 1.1; // cập nhật với 10% tăng thêm
+            newRate = Math.round(newRate * 10000) / 10000; // Làm tròn 2 chữ số thập phân
             const oldRate = serviceItem.rate;
             serviceItem.rate = newRate;
             await serviceItem.save();
@@ -124,4 +125,4 @@ setInterval(() => {
   updateServicePrices();
   // updateTypeToPlatformId();
 
-}, 30000); // 30,000 milliseconds = 30 seconds
+}, 60000); // 30,000 milliseconds = 30 seconds
